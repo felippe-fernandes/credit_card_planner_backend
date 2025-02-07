@@ -1,5 +1,5 @@
-import { LoginForm } from "@/components/auth"
-import { CreditCard } from "lucide-react"
+import { LoginForm } from "@/components/auth/LoginForm";
+import { CreditCard } from "lucide-react";
 
 export default function LoginPage() {
   return (
@@ -14,5 +14,5 @@ export default function LoginPage() {
         <LoginForm />
       </div>
     </div>
-  )
+  );
 }
