@@ -5,28 +5,12 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 
-export function useLogin() {
-  return useMutation({
-    mutationFn: SignInWithPassword,
-  });
-}
-
-export function useSignUp() {
-  return useMutation({
-    mutationFn: SignUp,
-  });
-}
-
-export function useSignOut() {
-  return useMutation({
-    mutationFn: SignOut,
-  });
-}
-
 export const useLoginForm = () => {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
-  const loginMutate = useLogin();
+  const loginMutate = useMutation({
+    mutationFn: SignInWithPassword,
+  });
 
   const {
     register,
@@ -61,7 +45,9 @@ export const useLoginForm = () => {
 export const useSignUpForm = () => {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
-  const signupMutate = useSignUp();
+  const signupMutate = useMutation({
+    mutationFn: SignUp,
+  });
 
   const {
     register,
@@ -96,7 +82,9 @@ export const useSignUpForm = () => {
 export const useSignOutForm = () => {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
-  const signoutMutate = useSignOut();
+  const signoutMutate = useMutation({
+    mutationFn: SignOut,
+  });
 
   const {
     register,
