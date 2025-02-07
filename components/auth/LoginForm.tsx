@@ -59,7 +59,9 @@ export function LoginForm({
                     Forgot your password?
                   </a>
                 </div>
-                {error && <p className="text-red-500 text-sm">{error}</p>}
+                {error && (
+                  <p className="text-red-500 text-sm">{error.message}</p>
+                )}
                 <Button
                   type="submit"
                   className="w-full"

@@ -1,15 +1,21 @@
 import { SignInWithPassword, SignOut, SignUp } from "@/services/auth";
+import { useAuthStore } from "@/store/auth";
 import { IAuthFields } from "@/types/auth";
 import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
 import { useForm } from "react-hook-form";
 
 export const useLoginForm = () => {
   const router = useRouter();
-  const [error, setError] = useState<string | null>(null);
-  const loginMutate = useMutation({
+
+  const setUser = useAuthStore((state) => state.setUser);
+
+  const { mutateAsync, error } = useMutation({
     mutationFn: SignInWithPassword,
+    onSuccess: (data) => {
+      setUser(data);
+      router.push("/dashboard");
+    },
   });
 
   const {
@@ -18,19 +24,7 @@ export const useLoginForm = () => {
     formState: { errors, isSubmitting },
   } = useForm<IAuthFields>();
 
-  const onSubmit = async (data: IAuthFields) => {
-    setError(null);
-    try {
-      await loginMutate.mutateAsync(data);
-      router.push("/dashboard");
-    } catch (e) {
-      if (e instanceof Error) {
-        setError(e.message);
-      } else {
-        setError(String(e));
-      }
-    }
-  };
+  const onSubmit = async (data: IAuthFields) => await mutateAsync(data);
 
   return {
     register,
@@ -44,9 +38,11 @@ export const useLoginForm = () => {
 
 export const useSignUpForm = () => {
   const router = useRouter();
-  const [error, setError] = useState<string | null>(null);
-  const signupMutate = useMutation({
+  const { mutateAsync, error } = useMutation({
     mutationFn: SignUp,
+    onSuccess: () => {
+      router.push("/dashboard");
+    },
   });
 
   const {
@@ -55,19 +51,7 @@ export const useSignUpForm = () => {
     formState: { errors, isSubmitting },
   } = useForm<IAuthFields>();
 
-  const onSubmit = async (data: IAuthFields) => {
-    setError(null);
-    try {
-      await signupMutate.mutateAsync(data);
-      router.push("/dashboard");
-    } catch (e) {
-      if (e instanceof Error) {
-        setError(e.message);
-      } else {
-        setError(String(e));
-      }
-    }
-  };
+  const onSubmit = async (data: IAuthFields) => await mutateAsync(data);
 
   return {
     register,
@@ -81,9 +65,11 @@ export const useSignUpForm = () => {
 
 export const useSignOutForm = () => {
   const router = useRouter();
-  const [error, setError] = useState<string | null>(null);
-  const signoutMutate = useMutation({
+  const { mutateAsync, error } = useMutation({
     mutationFn: SignOut,
+    onSuccess: () => {
+      router.push("/");
+    },
   });
 
   const {
@@ -92,19 +78,7 @@ export const useSignOutForm = () => {
     formState: { errors, isSubmitting },
   } = useForm<IAuthFields>();
 
-  const onSubmit = async () => {
-    setError(null);
-    try {
-      await signoutMutate.mutateAsync();
-      router.push("/");
-    } catch (e) {
-      if (e instanceof Error) {
-        setError(e.message);
-      } else {
-        setError(String(e));
-      }
-    }
-  };
+  const onSubmit = async () => await mutateAsync();
 
   return {
     register,
