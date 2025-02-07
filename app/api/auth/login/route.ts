@@ -15,10 +15,10 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({
-      message: "Login realizado com sucesso!",
+      message: "Login successful",
       user: data.user,
     });
   } catch {
-    return NextResponse.json({ error: "Erro interno" }, { status: 500 });
+    return NextResponse.json({ error: "Internal Error" }, { status: 500 });
   }
 }

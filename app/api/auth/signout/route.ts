@@ -9,8 +9,8 @@ export async function POST() {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
 
-    return NextResponse.json({ message: "Logout realizado com sucesso!" });
+    return NextResponse.json({ message: "Signout successful" });
   } catch {
-    return NextResponse.json({ error: "Erro interno" }, { status: 500 });
+    return NextResponse.json({ error: "Internal Error" }, { status: 500 });
   }
 }

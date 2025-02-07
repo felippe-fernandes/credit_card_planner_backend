@@ -24,8 +24,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: dbError.message }, { status: 400 });
     }
 
-    return NextResponse.json({ message: "Usuário criado com sucesso!" });
+    return NextResponse.json({ message: "User created successfully" });
   } catch {
-    return NextResponse.json({ error: "Erro interno" }, { status: 500 });
+    return NextResponse.json({ error: "Internal Error" }, { status: 500 });
   }
 }
