@@ -3,16 +3,19 @@
 import Input from "@/components/commons/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useLoginForm } from "@/hooks/components/auth";
+import { useSignUpForm } from "@/hooks/components/auth";
 import { cn } from "@/lib/utils";
 
-export function LoginForm({
+export function SignupForm({
   className,
   ...props
 }: React.ComponentPropsWithoutRef<"div">) {
   const { error, formErrors, handleSubmit, isSubmitting, onSubmit, register } =
-    useLoginForm();
+    useSignUpForm();
 
+  const nameRegister = {
+    ...register("name", { required: "Name is required" }),
+  };
   const emailRegister = {
     ...register("email", { required: "Email is required" }),
   };
@@ -24,12 +27,23 @@ export function LoginForm({
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card>
         <CardHeader className="text-center">
-          <CardTitle className="text-xl">Welcome back</CardTitle>
+          <CardTitle className="text-xl">Create Account</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)}>
             <div className="grid gap-6">
               <div className="grid gap-6">
+                <div className="grid gap-2">
+                  <Input
+                    label="Name"
+                    id="Name"
+                    type="text"
+                    placeholder="John Doe"
+                    required
+                    register={nameRegister}
+                    formErrors={formErrors}
+                  />
+                </div>
                 <div className="grid gap-2">
                   <Input
                     label="Email"
@@ -52,26 +66,22 @@ export function LoginForm({
                     register={passwordRegister}
                     formErrors={formErrors}
                   />
-                  <a
-                    href="#"
-                    className="ml-auto text-sm underline-offset-4 hover:underline"
-                  >
-                    Forgot your password?
-                  </a>
                 </div>
-                {error && <p className="text-red-500 text-sm">{error}</p>}
+                {error && (
+                  <p className="text-red-500 text-sm">{error.message}</p>
+                )}
                 <Button
                   type="submit"
                   className="w-full"
                   disabled={isSubmitting}
                 >
-                  {isSubmitting ? "Logging in..." : "Login"}
+                  {isSubmitting ? "Creating account..." : "Create Account"}
                 </Button>
               </div>
               <div className="text-center text-sm">
-                {"Dons't have an account?"}{" "}
-                <a href="#" className="underline underline-offset-4">
-                  Sign up
+                Already have an account?{" "}
+                <a href="/auth/login" className="underline underline-offset-4">
+                  Login
                 </a>
               </div>
             </div>

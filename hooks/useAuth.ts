@@ -14,7 +14,7 @@ export function useAuth() {
         data: { session },
       } = await supabase.auth.getSession();
       if (!session) {
-        router.push("/auth"); // Redireciona para a página de login
+        router.push("/auth/login"); // Redireciona para a página de login
       } else {
         setSession(session);
         setUser(session.user);
