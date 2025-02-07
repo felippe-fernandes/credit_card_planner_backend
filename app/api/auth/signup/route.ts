@@ -10,9 +10,8 @@ export async function POST(req: Request) {
       email,
       password,
     });
-
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
+      return NextResponse.json({ message: error.message }, { status: 400 });
     }
 
     // Salvar o usuário no banco
@@ -21,11 +20,11 @@ export async function POST(req: Request) {
       .insert([{ id: data.user?.id, email, name }]);
 
     if (dbError) {
-      return NextResponse.json({ error: dbError.message }, { status: 400 });
+      return NextResponse.json({ message: dbError.details }, { status: 400 });
     }
 
     return NextResponse.json({ message: "User created successfully" });
   } catch {
-    return NextResponse.json({ error: "Internal Error" }, { status: 500 });
+    return NextResponse.json({ message: "Internal Error" }, { status: 500 });
   }
 }

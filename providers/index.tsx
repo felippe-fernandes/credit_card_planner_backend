@@ -1,6 +1,7 @@
 "use client";
 
 import Loading from "@/components/Loading";
+import { AuthProvider } from "@/context/AuthContext";
 // Since QueryClientProvider relies on useContext under the hood, we have to put 'use client' on top
 import {
   isServer,
@@ -45,8 +46,10 @@ export default function Providers({ children }: { children: React.ReactNode }) {
   const queryClient = getQueryClient();
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <Suspense fallback={<Loading />}>{children}</Suspense>
-    </QueryClientProvider>
+    <Suspense fallback={<Loading />}>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>{children}</AuthProvider>
+      </QueryClientProvider>
+    </Suspense>
   );
 }

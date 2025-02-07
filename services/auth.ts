@@ -1,39 +1,42 @@
-import { IAuthFields } from "@/types/auth";
-import axios from "axios";
+import {
+  IAuthFields,
+  IMessageResponse,
+  IUserResponse,
+  IValidateSessionResponse,
+} from "@/types/auth";
+import axiosInstance, { handleRequest } from "@/utils/axios";
 
-export const SignInWithPassword = async ({ email, password }: IAuthFields) => {
-  try {
-    const response = await axios.post("/api/auth/login", {
-      email,
-      password,
-    });
-
-    return response.data;
-  } catch {
-    throw new Error("Login failed");
-  }
+export const SignInWithPassword = async ({
+  email,
+  password,
+}: IAuthFields): Promise<IUserResponse> => {
+  return handleRequest(
+    axiosInstance.post<IUserResponse>("/api/auth/login", { email, password })
+  );
 };
 
-export const SignUp = async ({ email, password, name }: IAuthFields) => {
-  try {
-    const response = await axios.post("/api/auth/signup", {
+export const SignUp = async ({
+  email,
+  password,
+  name,
+}: IAuthFields): Promise<IMessageResponse> => {
+  return handleRequest(
+    axiosInstance.post<IMessageResponse>("/api/auth/signup", {
       email,
       password,
       name,
-    });
-
-    return response.data;
-  } catch {
-    throw new Error("Signup failed");
-  }
+    })
+  );
 };
 
-export const SignOut = async () => {
-  try {
-    const response = await axios.post("/api/auth/signout");
+export const SignOut = async (): Promise<IMessageResponse> => {
+  return handleRequest(
+    axiosInstance.post<IMessageResponse>("/api/auth/signout")
+  );
+};
 
-    return response.data;
-  } catch {
-    throw new Error("Signout failed");
-  }
+export const Validate = async (): Promise<IValidateSessionResponse> => {
+  return handleRequest(
+    axiosInstance.post<IValidateSessionResponse>("/api/auth/validate")
+  );
 };

@@ -11,7 +11,7 @@ export async function POST(req: Request) {
     });
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
+      return NextResponse.json({ message: error.message }, { status: 400 });
     }
 
     return NextResponse.json({
@@ -19,6 +19,6 @@ export async function POST(req: Request) {
       user: data.user,
     });
   } catch {
-    return NextResponse.json({ error: "Internal Error" }, { status: 500 });
+    return NextResponse.json({ message: "Internal Error" }, { status: 500 });
   }
 }

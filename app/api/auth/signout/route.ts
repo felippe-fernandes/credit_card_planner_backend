@@ -6,11 +6,11 @@ export async function POST() {
     const { error } = await supabase.auth.signOut();
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
+      return NextResponse.json({ message: error.message }, { status: 400 });
     }
 
     return NextResponse.json({ message: "Signout successful" });
   } catch {
-    return NextResponse.json({ error: "Internal Error" }, { status: 500 });
+    return NextResponse.json({ message: "Internal Error" }, { status: 500 });
   }
 }
