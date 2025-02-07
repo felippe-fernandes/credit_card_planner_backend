@@ -1,0 +1,62 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  createdAt DateTime @default(now())
+
+  cards        Card[]
+  transactions Transaction[]
+  categories   Category[] // Adicionando relação com categorias
+}
+
+model Card {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  bank      String
+  flag      String
+  limit     Decimal
+  dueDay    Int
+  payDay    Int
+  createdAt DateTime @default(now())
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+}
+
+model Transaction {
+  id               String   @id @default(cuid())
+  cardId           String
+  userId           String
+  purchaseName     String
+  purchaseCategory String
+  description      String
+  amount           Decimal
+  date             DateTime
+  installments     Int      @default(1) // Parcelamento
+  createdAt        DateTime @default(now())
+
+  card Card @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Category {
+  id        String   @id @default(cuid())
+  name      String
+  icon      String   @default("➕")
+  color     String   @default("#000000")
+  userId    String?
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
