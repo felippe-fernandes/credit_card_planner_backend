@@ -1,7 +1,10 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { createClient } from '@supabase/supabase-js';
+import { SIGN_OPTIONS } from 'src/constants';
+import { encryptValue } from 'utils/crypto';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { RequestWithUser } from './interfaces/request-user.interface';
 
 @Injectable()
 export class AuthService {
@@ -44,7 +47,7 @@ export class AuthService {
     }
 
     const payload = { sub: data.user?.id, email };
-    const token = this.jwtService.sign(payload, { expiresIn: '1d' });
+    const token = this.jwtService.sign(payload, SIGN_OPTIONS);
 
     return { email, name, token };
   }
@@ -55,27 +58,56 @@ export class AuthService {
       password,
     });
 
-    if (error) throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+    if (error) throw new Error(error.message);
 
     const payload = { sub: data.user.id, email: data.user.email };
-    const token = this.jwtService.sign(payload, { expiresIn: '1d' });
+    const token = this.jwtService.sign(payload, SIGN_OPTIONS);
 
-    return { token };
+    // Criptografando o refresh_token
+    const refreshTokenEncrypted = await encryptValue(
+      data.session?.refresh_token,
+    );
+
+    // Criptografando o access_token
+    const accessTokenEncrypted = await encryptValue(data.session?.access_token);
+
+    // Salvando o refresh_token criptografado no banco de dados
+    await this.supabase.from('User').upsert([
+      {
+        id: data.user?.id,
+        refresh_token: refreshTokenEncrypted,
+        access_token: accessTokenEncrypted,
+      },
+    ]);
+
+    return { token, refreshToken: data.session?.refresh_token };
   }
 
-  async changePassword(changePasswordDto: ChangePasswordDto) {
+  async changePassword(
+    userInfo: RequestWithUser['user'],
+    changePasswordDto: ChangePasswordDto,
+  ) {
     const { newPassword } = changePasswordDto;
 
-    // Verificar se o usuário existe
-    const { data, error } = await this.supabase.auth.getUser();
+    // Defina a sessão no Supabase com o token fornecido
+    const { data: sessionData, error: sessionError } =
+      await this.supabase.auth.setSession({
+        access_token: userInfo.token,
+        refresh_token: userInfo.token,
+      });
+    console.log('🚀 | sessionError:', sessionError);
 
-    if (error || !data || !data.user) {
-      throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+    if (sessionError || !sessionData) {
+      throw new HttpException(
+        'Session not valid or missing',
+        HttpStatus.UNAUTHORIZED,
+      );
     }
 
+    // Agora o Supabase tem a sessão do usuário
     const { error: updateError } = await this.supabase.auth.updateUser({
       password: newPassword,
-      email: data.user.email!,
+      email: userInfo.email, // Usando o e-mail para garantir a atualização
     });
 
     if (updateError) {
@@ -85,9 +117,9 @@ export class AuthService {
       );
     }
 
-    // Gerar novo token com o novo password
-    const payload = { sub: '', email: data.user.email };
-    const newToken = this.jwtService.sign(payload, { expiresIn: '1d' });
+    // Gerar novo token com a nova senha
+    const payload = { sub: userInfo.sub, email: userInfo.email };
+    const newToken = this.jwtService.sign(payload, SIGN_OPTIONS);
 
     return { message: 'Password updated successfully', token: newToken };
   }

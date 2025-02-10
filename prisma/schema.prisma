@@ -9,14 +9,16 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String
-  createdAt DateTime @default(now())
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  createdAt    DateTime @default(now())
+  refreshToken String?
+  accessToken  String?
 
   cards        Card[]
   transactions Transaction[]
-  categories   Category[] // Adicionando relação com categorias
+  Category     Category[]
 }
 
 model Card {

@@ -1,7 +1,15 @@
-import { Body, Controller, Patch, Post, UseGuards } from '@nestjs/common'; // Importando corretamente o Request
+import {
+  Body,
+  Controller,
+  Patch,
+  Post,
+  Request,
+  UseGuards,
+} from '@nestjs/common'; // Importando corretamente o Request
+import { JwtAuthGuard } from './auth.guard';
 import { AuthService } from './auth.service';
 import { ChangePasswordDto } from './dto/change-password.dto';
-import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { RequestWithUser } from './interfaces/request-user.interface';
 
 @Controller('auth')
 export class AuthController {
@@ -19,7 +27,11 @@ export class AuthController {
 
   @Patch('change-password')
   @UseGuards(JwtAuthGuard)
-  async changePassword(@Body() changePasswordDto: ChangePasswordDto) {
-    return await this.authService.changePassword(changePasswordDto);
+  async changePassword(
+    @Request() req: RequestWithUser,
+    @Body() changePasswordDto: ChangePasswordDto,
+  ) {
+    const userInfo = req.user;
+    return await this.authService.changePassword(userInfo, changePasswordDto);
   }
 }

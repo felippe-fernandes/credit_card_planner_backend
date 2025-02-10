@@ -1,10 +1,7 @@
 import { Module } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
-import { CardController } from './card.controller';
-import { CardService } from './card.service';
+import { AuthModule } from '../auth/auth.module'; // Importe o módulo de autenticação
 
 @Module({
-  providers: [CardService, PrismaService],
-  controllers: [CardController],
+  imports: [AuthModule], // Agora o JwtService estará disponível
 })
 export class CardModule {}
