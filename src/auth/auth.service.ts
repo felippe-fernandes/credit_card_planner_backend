@@ -3,15 +3,10 @@ import { JwtService } from '@nestjs/jwt';
 import { createClient } from '@supabase/supabase-js';
 import { SIGN_OPTIONS } from 'src/constants';
 import { encryptValue } from 'utils/crypto';
-import { ChangePasswordDto } from './dto/change-password.dto';
-import { RequestWithUser } from './interfaces/request-user.interface';
 
 @Injectable()
 export class AuthService {
-  private supabase = createClient(
-    process.env.SUPABASE_URL || '',
-    process.env.SUPABASE_ANON_KEY || '',
-  );
+  private supabase = createClient(process.env.SUPABASE_URL || '', process.env.SUPABASE_ANON_KEY || '');
 
   constructor(private jwtService: JwtService) {}
 
@@ -25,25 +20,13 @@ export class AuthService {
       throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
     }
 
-    const { error: dbError } = await this.supabase
-      .from('User')
-      .insert([{ id: data.user?.id, email, name }]);
+    const { error: dbError } = await this.supabase.from('User').insert([{ id: data.user?.id, email, name }]);
 
     if (dbError) {
-      if (
-        dbError.message.includes(
-          'duplicate key value violates unique constraint',
-        )
-      ) {
-        throw new HttpException(
-          'This email is already registered!',
-          HttpStatus.BAD_REQUEST,
-        );
+      if (dbError.message.includes('duplicate key value violates unique constraint')) {
+        throw new HttpException('This email is already registered!', HttpStatus.BAD_REQUEST);
       }
-      throw new HttpException(
-        dbError.details,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      throw new HttpException(dbError.details, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
     const payload = { sub: data.user?.id, email };
@@ -64,9 +47,7 @@ export class AuthService {
     const token = this.jwtService.sign(payload, SIGN_OPTIONS);
 
     // Criptografando o refresh_token
-    const refreshTokenEncrypted = await encryptValue(
-      data.session?.refresh_token,
-    );
+    const refreshTokenEncrypted = await encryptValue(data.session?.refresh_token);
 
     // Criptografando o access_token
     const accessTokenEncrypted = await encryptValue(data.session?.access_token);
@@ -81,46 +62,5 @@ export class AuthService {
     ]);
 
     return { token, refreshToken: data.session?.refresh_token };
-  }
-
-  async changePassword(
-    userInfo: RequestWithUser['user'],
-    changePasswordDto: ChangePasswordDto,
-  ) {
-    const { newPassword } = changePasswordDto;
-
-    // Defina a sessão no Supabase com o token fornecido
-    const { data: sessionData, error: sessionError } =
-      await this.supabase.auth.setSession({
-        access_token: userInfo.token,
-        refresh_token: userInfo.token,
-      });
-    console.log('🚀 | sessionError:', sessionError);
-
-    if (sessionError || !sessionData) {
-      throw new HttpException(
-        'Session not valid or missing',
-        HttpStatus.UNAUTHORIZED,
-      );
-    }
-
-    // Agora o Supabase tem a sessão do usuário
-    const { error: updateError } = await this.supabase.auth.updateUser({
-      password: newPassword,
-      email: userInfo.email, // Usando o e-mail para garantir a atualização
-    });
-
-    if (updateError) {
-      throw new HttpException(
-        'Error updating password',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-
-    // Gerar novo token com a nova senha
-    const payload = { sub: userInfo.sub, email: userInfo.email };
-    const newToken = this.jwtService.sign(payload, SIGN_OPTIONS);
-
-    return { message: 'Password updated successfully', token: newToken };
   }
 }

@@ -1,13 +1,4 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Param,
-  Post,
-  Request,
-  UseGuards,
-} from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Request, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from 'src/auth/auth.guard';
 import { RequestWithUser } from 'src/auth/interfaces/request-user.interface';
 import { CardService } from './card.service';
@@ -19,10 +10,7 @@ export class CardController {
   constructor(private readonly cardService: CardService) {}
 
   @Post()
-  create(
-    @Request() req: RequestWithUser,
-    @Body() createCardDto: CreateCardDto,
-  ) {
+  create(@Request() req: RequestWithUser, @Body() createCardDto: CreateCardDto) {
     return this.cardService.create(req.user.sub, createCardDto);
   }
 

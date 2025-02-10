@@ -18,7 +18,18 @@ model User {
 
   cards        Card[]
   transactions Transaction[]
-  Category     Category[]
+  categories   Category[]
+  dependents   Dependent[]
+}
+
+model Dependent {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  createdAt DateTime @default(now())
+
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  Transaction Transaction[]
 }
 
 model Card {
@@ -39,7 +50,8 @@ model Card {
 model Transaction {
   id               String   @id @default(cuid())
   cardId           String
-  userId           String
+  userId           String // Dono da conta/cartão
+  dependentId      String? // Quem realmente fez a compra
   purchaseName     String
   purchaseCategory String
   description      String
@@ -48,8 +60,9 @@ model Transaction {
   installments     Int      @default(1) // Parcelamento
   createdAt        DateTime @default(now())
 
-  card Card @relation(fields: [cardId], references: [id], onDelete: Cascade)
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  card      Card       @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dependent Dependent? @relation(fields: [dependentId], references: [id], onDelete: SetNull)
 }
 
 model Category {
