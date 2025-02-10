@@ -33,7 +33,7 @@ export class AuthService {
         )
       ) {
         throw new HttpException(
-          'Este email já está registrado!',
+          'This email is already registered!',
           HttpStatus.BAD_REQUEST,
         );
       }
@@ -44,7 +44,7 @@ export class AuthService {
     }
 
     const payload = { sub: data.user?.id, email };
-    const token = this.jwtService.sign(payload);
+    const token = this.jwtService.sign(payload, { expiresIn: '1d' });
 
     return { email, name, token };
   }
@@ -58,43 +58,37 @@ export class AuthService {
     if (error) throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
 
     const payload = { sub: data.user.id, email: data.user.email };
-    const token = this.jwtService.sign(payload);
+    const token = this.jwtService.sign(payload, { expiresIn: '1d' });
 
     return { token };
   }
 
-  async changePassword(userId: string, changePasswordDto: ChangePasswordDto) {
-    const { currentPassword, newPassword } = changePasswordDto;
+  async changePassword(changePasswordDto: ChangePasswordDto) {
+    const { newPassword } = changePasswordDto;
 
     // Verificar se o usuário existe
-    const { data, error } = await this.supabase.auth.getUser(userId);
+    const { data, error } = await this.supabase.auth.getUser();
 
     if (error || !data || !data.user) {
-      throw new HttpException('Usuário não encontrado', HttpStatus.NOT_FOUND);
+      throw new HttpException('User not found', HttpStatus.NOT_FOUND);
     }
 
-    // Tentar reautenticar o usuário com a senha atual
-    const { error: authError } = await this.supabase.auth.signInWithPassword({
-      email: data.user.email!,
-      password: currentPassword,
-    });
-
-    if (authError) {
-      throw new HttpException('Senha atual incorreta', HttpStatus.BAD_REQUEST);
-    }
-
-    // Atualizar a senha para a nova
     const { error: updateError } = await this.supabase.auth.updateUser({
       password: newPassword,
+      email: data.user.email!,
     });
 
     if (updateError) {
       throw new HttpException(
-        'Erro ao atualizar a senha',
+        'Error updating password',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
 
-    return { message: 'Senha alterada com sucesso' };
+    // Gerar novo token com o novo password
+    const payload = { sub: '', email: data.user.email };
+    const newToken = this.jwtService.sign(payload, { expiresIn: '1d' });
+
+    return { message: 'Password updated successfully', token: newToken };
   }
 }
