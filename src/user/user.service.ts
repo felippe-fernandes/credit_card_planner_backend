@@ -1,0 +1,101 @@
+import { BadRequestException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
+import { PostgrestError } from '@supabase/supabase-js';
+import { supabase } from 'src/auth/supabase.client';
+import { PrismaService } from 'src/prisma/prisma.service';
+import { UpdateUserDto } from './dto/user.dto';
+
+@Injectable()
+export class UserService {
+  constructor(private prisma: PrismaService) {}
+
+  async findAll() {
+    try {
+      const users = await this.prisma.user.findMany();
+      if (users.length === 0) {
+        throw new NotFoundException({
+          statusCode: HttpStatus.NOT_FOUND,
+          message: 'No users found',
+        });
+      }
+      return {
+        statusCode: HttpStatus.OK,
+        message: 'Users retrieved successfully',
+        data: users,
+      };
+    } catch {
+      throw new BadRequestException({
+        statusCode: HttpStatus.BAD_REQUEST,
+        message: 'Failed to retrieve users',
+      });
+    }
+  }
+
+  async findOne(id: string) {
+    try {
+      const user = await this.prisma.user.findUnique({
+        where: { id },
+      });
+      if (!user) {
+        throw new NotFoundException({
+          statusCode: HttpStatus.NOT_FOUND,
+          message: `User with id ${id} not found`,
+        });
+      }
+      return {
+        statusCode: HttpStatus.OK,
+        message: 'User retrieved successfully',
+        data: user,
+      };
+    } catch {
+      throw new BadRequestException({
+        statusCode: HttpStatus.BAD_REQUEST,
+        message: 'Failed to retrieve user',
+      });
+    }
+  }
+
+  async update(id: string, updateUserDto: UpdateUserDto) {
+    try {
+      const updatedUser = await this.prisma.user.update({
+        where: { id },
+        data: updateUserDto,
+      });
+      return {
+        statusCode: HttpStatus.OK,
+        message: 'User updated successfully',
+        data: updatedUser,
+      };
+    } catch (error: unknown) {
+      if ((error as PostgrestError).code === 'P2002') {
+        throw new BadRequestException({
+          statusCode: HttpStatus.BAD_REQUEST,
+          message: 'Error updating user: Duplicate value found',
+        });
+      }
+      throw new NotFoundException({
+        statusCode: HttpStatus.NOT_FOUND,
+        message: `User with id ${id} not found`,
+      });
+    }
+  }
+
+  async remove(id: string) {
+    try {
+      await this.prisma.user.delete({
+        where: { id },
+      });
+
+      await supabase.auth.admin.deleteUser(id);
+
+      return {
+        statusCode: HttpStatus.OK,
+        message: 'User deleted successfully',
+      };
+    } catch {
+      throw new NotFoundException({
+        statusCode: HttpStatus.NOT_FOUND,
+        message: `User with id ${id} not found`,
+      });
+    }
+  }
+}
