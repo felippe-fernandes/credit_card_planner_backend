@@ -17,7 +17,7 @@ model User {
   editedAt  DateTime? @default(now()) @updatedAt @db.Timestamp(6)
 
   cards        Card[]
-  categories   Category[]
+  categories   Category[] // Agora as categorias pertencem ao usuário
   dependents   Dependent[]
   transactions Transaction[]
 }
@@ -73,9 +73,9 @@ model Category {
   name      String
   icon      String    @default("➕")
   color     String    @default("#000000")
-  userId    String?
+  userId    String // Agora o usuário precisa estar vinculado
   createdAt DateTime  @default(now())
   editedAt  DateTime? @default(now()) @updatedAt @db.Timestamp(6)
 
-  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

@@ -10,33 +10,37 @@ export class AuthService {
   async signUp(payload: SignupDto) {
     const { email, password, name, phone } = payload;
 
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { displayName: name, phone },
-      },
-    });
-
-    if (error) {
-      throw new HttpException(`Error signing up: ${error.message}`, HttpStatus.BAD_REQUEST);
-    }
-
-    const user = data.user;
-    if (!user) {
-      throw new HttpException('Error retrieving user from Supabase', HttpStatus.INTERNAL_SERVER_ERROR);
-    }
-
     try {
       const newUser = await this.prisma.user.create({
         data: {
-          id: user.id,
           email,
           name,
           phone,
+          categories: {
+            create: [
+              { name: 'Food', icon: '🍔', color: '#FF5733' },
+              { name: 'Transport', icon: '🚗', color: '#3498DB' },
+              { name: 'Entertainment', icon: '🎉', color: '#9B59B6' },
+              { name: 'Health', icon: '💊', color: '#2ECC71' },
+              { name: 'Education', icon: '📚', color: '#F1C40F' },
+            ],
+          },
         },
       });
 
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        phone,
+        options: {
+          data: { displayName: name, phone },
+        },
+      });
+
+      if (error) {
+        await this.prisma.user.delete({ where: { id: newUser.id } });
+        throw new HttpException(`Error signing up: ${error.message}`, HttpStatus.BAD_REQUEST);
+      }
       return {
         message: 'User successfully created',
         user: newUser,
