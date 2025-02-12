@@ -1,4 +1,4 @@
-import { IsOptional, IsString } from 'class-validator';
+import { IsHexColor, IsOptional, IsString } from 'class-validator';
 
 export class CreateCategoryDto {
   @IsString()
@@ -10,6 +10,7 @@ export class CreateCategoryDto {
 
   @IsOptional()
   @IsString()
+  @IsHexColor()
   color?: string;
 }
 
@@ -24,5 +25,16 @@ export class UpdateCategoryDto {
 
   @IsOptional()
   @IsString()
+  @IsHexColor()
   color?: string;
+}
+
+export class FindOneCategoryDto {
+  @IsOptional()
+  @IsString()
+  id?: string;
+
+  @IsOptional()
+  @IsString()
+  name?: string;
 }

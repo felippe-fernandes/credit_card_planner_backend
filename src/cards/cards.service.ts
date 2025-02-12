@@ -1,15 +1,25 @@
 import { BadRequestException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { CreateCardDto, UpdateCardDto } from './dto/cards.dto';
+import { CreateCardDto, FindAllCardsDto, FindOneCardDto, UpdateCardDto } from './dto/cards.dto';
 
 @Injectable()
 export class CardsService {
   constructor(private prisma: PrismaService) {}
 
-  async findAll(userId: string) {
+  async findAll(userId: string, filters: FindAllCardsDto) {
+    const { name, ...restOfTheFilters } = filters;
     try {
       const cards = await this.prisma.card.findMany({
-        where: { userId },
+        where: {
+          userId,
+          AND: {
+            ...restOfTheFilters,
+            name: {
+              contains: name,
+              mode: 'insensitive',
+            },
+          },
+        },
       });
       if (cards.length === 0) {
         return {
@@ -31,44 +41,29 @@ export class CardsService {
     }
   }
 
-  async findOneById(userId: string, cardId: string) {
-    try {
-      const card = await this.prisma.card.findUnique({
-        where: { id: cardId },
-      });
-      if (!card) {
-        throw new NotFoundException({
-          statusCode: HttpStatus.NOT_FOUND,
-          message: `Card with id ${cardId} not found for user ${userId}`,
-          data: null,
-        });
-      }
-      return {
-        statusCode: HttpStatus.OK,
-        message: 'Card retrieved successfully',
-        data: card,
-      };
-    } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw error;
-      }
+  async findOne(userId: string, query: FindOneCardDto) {
+    if (!query.id && !query.name) {
       throw new BadRequestException({
         statusCode: HttpStatus.BAD_REQUEST,
-        message: 'Failed to retrieve card',
+        message: 'Please provide an id or name to search for',
       });
     }
-  }
 
-  async findOneByName(userId: string, cardName: string) {
     try {
       const card = await this.prisma.card.findFirst({
-        where: { name: cardName },
+        where: {
+          userId,
+          AND: {
+            id: { equals: query.id },
+            name: { contains: query.name, mode: 'insensitive' },
+          },
+        },
       });
 
       if (!card) {
         throw new NotFoundException({
           statusCode: HttpStatus.NOT_FOUND,
-          message: `Card with name ${cardName} not found for user ${userId}`,
+          message: `Card not found for user with id ${userId}`,
           data: null,
         });
       }
@@ -125,7 +120,6 @@ export class CardsService {
         data: card,
       };
     } catch (error) {
-      console.log('🚀 | error:', error);
       if (error instanceof BadRequestException) {
         throw error;
       }
@@ -159,20 +153,18 @@ export class CardsService {
   }
 
   async remove(userId: string, cardId: string) {
-    try {
-      await this.prisma.card.delete({
-        where: { id: cardId },
-      });
-      return {
-        statusCode: HttpStatus.OK,
-        message: 'Card deleted successfully',
-      };
-    } catch {
+    const category = await this.prisma.card.findUnique({ where: { id: cardId } });
+
+    if (!category || category.userId !== userId) {
       throw new NotFoundException({
         statusCode: HttpStatus.NOT_FOUND,
         message: `Card with id ${cardId} not found`,
       });
     }
+
+    await this.prisma.category.delete({ where: { id: cardId } });
+
+    return { statusCode: 200, message: 'Card deleted successfully' };
   }
 }
 

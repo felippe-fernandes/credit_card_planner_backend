@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
 import { AuthGuard } from 'src/auth/auth.guard';
 import { RequestWithUser } from 'src/auth/interfaces/auth.interface';
 import { CardsService } from './cards.service';
@@ -10,21 +10,26 @@ export class CardsController {
   constructor(private cardService: CardsService) {}
 
   @Get()
-  async findAll(@Req() req: RequestWithUser) {
+  async findAll(
+    @Req() req: RequestWithUser,
+    @Query('flag') flag?: string,
+    @Query('bank') bank?: string,
+    @Query('dueDay') dueDay?: string,
+    @Query('payDay') payDay?: string,
+    @Query('name') name?: string,
+  ) {
     const userId = req.user.id;
-    return this.cardService.findAll(userId);
+    const dueDayNumber = dueDay ? parseInt(dueDay, 10) : undefined;
+    const payDayNumber = payDay ? parseInt(payDay, 10) : undefined;
+    const filters = { flag, bank, dueDay: dueDayNumber, payDay: payDayNumber, name };
+    return this.cardService.findAll(userId, filters);
   }
 
-  @Get(':id')
-  async findOneById(@Req() req: RequestWithUser, @Param('id') cardId: string) {
+  @Get('/search')
+  async findOneById(@Req() req: RequestWithUser, @Query('id') id?: string, @Query('name') name?: string) {
     const userId = req.user.id;
-    return this.cardService.findOneById(userId, cardId);
-  }
-
-  @Get(':name')
-  async findOneByName(@Req() req: RequestWithUser, @Param('name') cardName: string) {
-    const userId = req.user.id;
-    return this.cardService.findOneByName(userId, cardName);
+    const query = { id, name };
+    return this.cardService.findOne(userId, query);
   }
 
   @Post()

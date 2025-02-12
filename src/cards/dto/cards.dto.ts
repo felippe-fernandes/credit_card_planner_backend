@@ -55,3 +55,39 @@ export class UpdateCardDto {
   @Max(31)
   payDay: number;
 }
+
+export class FindOneCardDto {
+  @IsOptional()
+  @IsString()
+  id?: string;
+
+  @IsOptional()
+  @IsString()
+  name?: string;
+}
+
+export class FindAllCardsDto {
+  @IsOptional()
+  @IsString()
+  flag?: string;
+
+  @IsOptional()
+  @IsString()
+  bank?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(31)
+  dueDay?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(31)
+  payDay?: number;
+
+  @IsOptional()
+  @IsString()
+  name?: string;
+}
