@@ -1,4 +1,3 @@
-// src/card/card.service.ts
 import { BadRequestException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateCardDto, UpdateCardDto } from './dto/cards.dto';
@@ -91,6 +90,17 @@ export class CardsService {
 
   async create(userId: string, createCardDto: CreateCardDto) {
     try {
+      const userExists = await this.prisma.user.findUnique({
+        where: { id: userId },
+      });
+
+      if (!userExists) {
+        throw new BadRequestException({
+          statusCode: HttpStatus.BAD_REQUEST,
+          message: `User with id ${userId} not found`,
+        });
+      }
+
       const existingCard = await this.prisma.card.findFirst({
         where: { name: createCardDto.name },
       });
@@ -100,21 +110,22 @@ export class CardsService {
           statusCode: HttpStatus.BAD_REQUEST,
           message: 'Card with the same name already exists',
         });
-      } else {
-        const card = await this.prisma.card.create({
-          data: {
-            ...createCardDto,
-            userId,
-          },
-        });
-
-        return {
-          statusCode: HttpStatus.CREATED,
-          message: 'Card created successfully',
-          data: card,
-        };
       }
+
+      const card = await this.prisma.card.create({
+        data: {
+          ...createCardDto,
+          userId,
+        },
+      });
+
+      return {
+        statusCode: HttpStatus.CREATED,
+        message: 'Card created successfully',
+        data: card,
+      };
     } catch (error) {
+      console.log('🚀 | error:', error);
       if (error instanceof BadRequestException) {
         throw error;
       }
@@ -164,3 +175,5 @@ export class CardsService {
     }
   }
 }
+
+// cm728w2lt0000wcb8bklcqg1p

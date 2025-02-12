@@ -1,4 +1,4 @@
-import { IsDecimal, IsInt, IsNumberString, IsOptional, IsString, Min } from 'class-validator';
+import { IsDecimal, IsInt, IsNumberString, IsOptional, IsString, Max, Min } from 'class-validator';
 
 export class CreateCardDto {
   @IsString()
@@ -16,10 +16,12 @@ export class CreateCardDto {
 
   @IsInt()
   @Min(1)
+  @Max(31)
   dueDay: number;
 
   @IsInt()
   @Min(1)
+  @Max(31)
   payDay: number;
 }
 
@@ -44,10 +46,12 @@ export class UpdateCardDto {
   @IsOptional()
   @IsInt()
   @Min(1)
+  @Max(31)
   dueDay: number;
 
   @IsOptional()
   @IsInt()
   @Min(1)
+  @Max(31)
   payDay: number;
 }

@@ -17,7 +17,7 @@ model User {
   editedAt  DateTime? @default(now()) @updatedAt @db.Timestamp(6)
 
   cards        Card[]
-  categories   Category[] // Agora as categorias pertencem ao usuário
+  categories   Category[]
   dependents   Dependent[]
   transactions Transaction[]
 }
@@ -73,7 +73,7 @@ model Category {
   name      String
   icon      String    @default("➕")
   color     String    @default("#000000")
-  userId    String // Agora o usuário precisa estar vinculado
+  userId    String
   createdAt DateTime  @default(now())
   editedAt  DateTime? @default(now()) @updatedAt @db.Timestamp(6)
 

@@ -17,7 +17,6 @@ export class AuthGuard implements CanActivate {
       throw new UnauthorizedException('Invalid token format');
     }
 
-    // Verifica o token com o Supabase
     const { data, error } = await supabase.auth.getUser(token);
 
     if (error || !data?.user) {

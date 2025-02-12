@@ -7,13 +7,11 @@ import { CreateCategoryDto, UpdateCategoryDto } from './dto/categories.dto';
 export class CategoriesService {
   constructor(private prisma: PrismaService) {}
 
-  // Rota que adiciona novamente as categorias padrão
   async addDefaultCategories(userId: string) {
     const existingCategories = await this.prisma.category.findMany({
       where: { userId },
     });
 
-    // Adicionar apenas as categorias que o usuário não tem
     for (const category of defaultCategories) {
       if (!existingCategories.find((c) => c.name === category.name)) {
         await this.prisma.category.create({
@@ -42,7 +40,6 @@ export class CategoriesService {
 
   async create(userId: string, data: CreateCategoryDto) {
     try {
-      // Usando o nome como id
       const category = await this.prisma.category.create({
         data: { ...data, userId },
       });
