@@ -9,12 +9,13 @@ datasource db {
 }
 
 model User {
-  id           String        @id @default(cuid())
-  email        String        @unique
-  name         String
-  createdAt    DateTime      @default(now())
-  phone        String?
-  editedAt     DateTime?     @default(now()) @updatedAt @db.Timestamp(6)
+  id        String    @id @default(cuid())
+  email     String    @unique
+  name      String
+  createdAt DateTime  @default(now())
+  phone     String?
+  editedAt  DateTime? @default(now()) @updatedAt @db.Timestamp(6)
+
   cards        Card[]
   categories   Category[]
   dependents   Dependent[]
@@ -22,32 +23,34 @@ model User {
 }
 
 model Dependent {
-  id          String        @id @default(cuid())
-  userId      String
-  name        String
-  createdAt   DateTime      @default(now())
-  editedAt    DateTime?     @default(now()) @updatedAt @db.Timestamp(6)
+  id        String    @id @default(cuid())
+  userId    String
+  name      String
+  createdAt DateTime  @default(now())
+  editedAt  DateTime? @default(now()) @updatedAt @db.Timestamp(6)
+
   user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   Transaction Transaction[]
 }
 
 model Card {
-  id           String        @id @default(cuid())
-  userId       String
-  name         String
-  bank         String
-  flag         String
-  limit        Decimal
-  dueDay       Int
-  payDay       Int
-  createdAt    DateTime      @default(now())
-  editedAt     DateTime?     @default(now()) @updatedAt @db.Timestamp(6)
+  id        String    @id @default(cuid())
+  userId    String
+  name      String
+  bank      String
+  flag      String
+  limit     Decimal
+  dueDay    Int
+  payDay    Int
+  createdAt DateTime  @default(now())
+  editedAt  DateTime? @default(now()) @updatedAt @db.Timestamp(6)
+
   user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   transactions Transaction[]
 }
 
 model Transaction {
-  id               String     @id @default(cuid())
+  id               String    @id @default(cuid())
   cardId           String
   userId           String
   dependentId      String?
@@ -56,12 +59,13 @@ model Transaction {
   description      String
   amount           Decimal
   date             DateTime
-  installments     Int        @default(1)
-  createdAt        DateTime   @default(now())
-  editedAt         DateTime?  @default(now()) @updatedAt @db.Timestamp(6)
-  card             Card       @relation(fields: [cardId], references: [id], onDelete: Cascade)
-  dependent        Dependent? @relation(fields: [dependentId], references: [id])
-  user             User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  installments     Int       @default(1)
+  createdAt        DateTime  @default(now())
+  editedAt         DateTime? @default(now()) @updatedAt @db.Timestamp(6)
+
+  card      Card       @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  dependent Dependent? @relation(fields: [dependentId], references: [id])
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Category {
@@ -72,5 +76,6 @@ model Category {
   userId    String?
   createdAt DateTime  @default(now())
   editedAt  DateTime? @default(now()) @updatedAt @db.Timestamp(6)
-  user      User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
