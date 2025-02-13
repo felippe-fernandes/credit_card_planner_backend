@@ -1,14 +1,32 @@
-import { CanActivate, ExecutionContext, HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import {
+  CanActivate,
+  ExecutionContext,
+  ForbiddenException,
+  HttpException,
+  HttpStatus,
+  Injectable,
+} from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
 import { PrismaService } from 'prisma/prisma.service';
-import { RequestWithUser } from './interfaces/auth.interface';
-import { supabase } from './supabase.client';
+import { RequestWithUser } from '../interfaces/auth.interface';
+import { supabase } from '../supabase.client';
 
 @Injectable()
-export class AuthGuard implements CanActivate {
-  constructor(private prisma: PrismaService) {}
+export class RolesGuard implements CanActivate {
+  constructor(
+    private reflector: Reflector,
+    private prisma: PrismaService,
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
+    const requiredRoles = this.reflector.get<string[]>('roles', context.getHandler());
+
+    if (!requiredRoles) {
+      return true;
+    }
+
     const request = context.switchToHttp().getRequest<RequestWithUser>();
+
     const authHeader = request.headers.authorization;
 
     if (!authHeader) {
@@ -34,10 +52,18 @@ export class AuthGuard implements CanActivate {
       throw new HttpException('User not found in the database', HttpStatus.NOT_FOUND);
     }
 
-    request.user = { ...supabaseUserData.user, userRole: prismaUser.role };
+    const user = { ...supabaseUserData.user, userRole: prismaUser.role };
 
-    if (prismaUser.role === 'SUPER_ADMIN') {
+    if (!user || !user.userRole) {
+      throw new HttpException('User role not found', HttpStatus.UNAUTHORIZED);
+    }
+
+    if (user.userRole === 'SUPER_ADMIN') {
       return true;
+    }
+
+    if (!requiredRoles.includes(user.userRole)) {
+      throw new ForbiddenException(`Access denied: You don't have access to this request`);
     }
 
     return true;

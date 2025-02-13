@@ -1,5 +1,7 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { Role } from '@prisma/client';
+import { PrismaService } from 'prisma/prisma.service';
+import { defaultCategories } from 'src/constants/categories';
 import { LoginDto, SignupDto } from './dto/auth.dto';
 import { supabase } from './supabase.client';
 
@@ -7,12 +9,13 @@ import { supabase } from './supabase.client';
 export class AuthService {
   constructor(private prisma: PrismaService) {}
 
-  async signUp(payload: SignupDto) {
+  private async signUpUserWithRole(payload: SignupDto, role: Role) {
     const { email, password, name, phone } = payload;
 
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
+      phone,
       options: {
         data: { displayName: name, phone },
       },
@@ -34,26 +37,33 @@ export class AuthService {
           email,
           name,
           phone,
+          role,
           categories: {
-            create: [
-              { name: 'Food', icon: '🍔', color: '#FF5733' },
-              { name: 'Transport', icon: '🚗', color: '#3498DB' },
-              { name: 'Entertainment', icon: '🎉', color: '#9B59B6' },
-              { name: 'Health', icon: '💊', color: '#2ECC71' },
-              { name: 'Education', icon: '📚', color: '#F1C40F' },
-            ],
+            create: defaultCategories,
           },
         },
       });
 
       return {
-        message: 'User successfully created',
+        message: `${role} successfully created`,
         user: newUser,
       };
     } catch {
       await supabase.auth.admin.deleteUser(user.id);
       throw new HttpException('Error saving user to the database', HttpStatus.INTERNAL_SERVER_ERROR);
     }
+  }
+
+  signUpUser(payload: SignupDto) {
+    return this.signUpUserWithRole(payload, 'USER');
+  }
+
+  signUpAdmin(payload: SignupDto) {
+    return this.signUpUserWithRole(payload, 'ADMIN');
+  }
+
+  signUpSuperAdmin(payload: SignupDto) {
+    return this.signUpUserWithRole(payload, 'SUPER_ADMIN');
   }
 
   async signIn(payload: LoginDto) {

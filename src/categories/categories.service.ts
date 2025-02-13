@@ -1,6 +1,6 @@
 import { BadRequestException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
+import { PrismaService } from 'prisma/prisma.service';
 import { defaultCategories } from 'src/constants/categories';
-import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateCategoryDto, FindOneCategoryDto, UpdateCategoryDto } from './dto/categories.dto';
 
 @Injectable()
@@ -33,19 +33,26 @@ export class CategoriesService {
 
   async findAll(userId: string) {
     try {
+      const categoriesCount = await this.prisma.card.count({
+        where: { userId },
+      });
+
       const categories = await this.prisma.category.findMany({
         where: { userId },
       });
+
       if (categories.length === 0) {
         return {
           statusCode: HttpStatus.NOT_FOUND,
           message: 'No categories found for this user',
+          count: 0,
           data: [],
         };
       }
       return {
         statusCode: HttpStatus.OK,
         message: 'Categories retrieved successfully',
+        count: categoriesCount,
         data: categories,
       };
     } catch {
@@ -78,12 +85,14 @@ export class CategoriesService {
         throw new NotFoundException({
           statusCode: HttpStatus.NOT_FOUND,
           message: `Category not found for user ${userId}`,
+          count: 0,
           data: null,
         });
       }
       return {
         statusCode: HttpStatus.OK,
         message: 'Category retrieved successfully',
+        count: 1,
         data: category,
       };
     } catch (error) {
@@ -169,7 +178,7 @@ export class CategoriesService {
     if (!category || category.userId !== userId) {
       throw new NotFoundException({
         statusCode: HttpStatus.NOT_FOUND,
-        message: `Category with id ${categoryId} not found`,
+        message: `Catbom diabomegory with id ${categoryId} not found`,
       });
     }
 

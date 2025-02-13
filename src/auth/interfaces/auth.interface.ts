@@ -1,6 +1,7 @@
-import { User } from '@supabase/supabase-js';
+import { User as PrismaUser } from '@prisma/client';
+import { User as SupabaseUser } from '@supabase/supabase-js';
 import { Request } from 'express';
 
 export interface RequestWithUser extends Request {
-  user: User;
+  user: SupabaseUser & { userRole: PrismaUser['role'] };
 }

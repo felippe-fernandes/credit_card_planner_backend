@@ -1,5 +1,5 @@
 import { BadRequestException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { PrismaService } from 'prisma/prisma.service';
 import { CreateCardDto, FindAllCardsDto, FindOneCardDto, UpdateCardDto } from './dto/cards.dto';
 
 @Injectable()
@@ -9,6 +9,19 @@ export class CardsService {
   async findAll(userId: string, filters: FindAllCardsDto) {
     const { name, ...restOfTheFilters } = filters;
     try {
+      const cardsCount = await this.prisma.card.count({
+        where: {
+          userId,
+          AND: {
+            ...restOfTheFilters,
+            name: {
+              contains: name,
+              mode: 'insensitive',
+            },
+          },
+        },
+      });
+
       const cards = await this.prisma.card.findMany({
         where: {
           userId,
@@ -21,16 +34,19 @@ export class CardsService {
           },
         },
       });
+
       if (cards.length === 0) {
         return {
           statusCode: HttpStatus.NOT_FOUND,
           message: 'No cards found for this user',
+          count: 0,
           data: [],
         };
       }
       return {
         statusCode: HttpStatus.OK,
         message: 'Cards retrieved successfully',
+        count: cardsCount,
         data: cards,
       };
     } catch {
@@ -64,12 +80,14 @@ export class CardsService {
         throw new NotFoundException({
           statusCode: HttpStatus.NOT_FOUND,
           message: `Card not found for user with id ${userId}`,
+          count: 0,
           data: null,
         });
       }
       return {
         statusCode: HttpStatus.OK,
         message: 'Card retrieved successfully',
+        count: 1,
         data: card,
       };
     } catch (error) {
@@ -167,5 +185,3 @@ export class CardsService {
     return { statusCode: 200, message: 'Card deleted successfully' };
   }
 }
-
-// cm728w2lt0000wcb8bklcqg1p

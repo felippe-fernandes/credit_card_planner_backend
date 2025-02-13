@@ -1,7 +1,7 @@
 import { BadRequestException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
 import { PostgrestError } from '@supabase/supabase-js';
+import { PrismaService } from 'prisma/prisma.service';
 import { supabase } from 'src/auth/supabase.client';
-import { PrismaService } from 'src/prisma/prisma.service';
 import { UpdateUserDto } from './dto/user.dto';
 
 @Injectable()
@@ -10,16 +10,21 @@ export class UserService {
 
   async findAll() {
     try {
+      const usersCount = await this.prisma.user.count();
+
       const users = await this.prisma.user.findMany();
       if (users.length === 0) {
         throw new NotFoundException({
           statusCode: HttpStatus.NOT_FOUND,
           message: 'No users found',
+          count: 0,
+          data: null,
         });
       }
       return {
         statusCode: HttpStatus.OK,
         message: 'Users retrieved successfully',
+        count: usersCount,
         data: users,
       };
     } catch {
@@ -39,11 +44,14 @@ export class UserService {
         throw new NotFoundException({
           statusCode: HttpStatus.NOT_FOUND,
           message: `User with id ${id} not found`,
+          count: 0,
+          data: null,
         });
       }
       return {
         statusCode: HttpStatus.OK,
         message: 'User retrieved successfully',
+        count: 1,
         data: user,
       };
     } catch {
