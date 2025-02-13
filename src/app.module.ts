@@ -9,10 +9,13 @@ import { CategoriesController } from './categories/categories.controller';
 import { CategoriesModule } from './categories/categories.module';
 import { CategoriesService } from './categories/categories.service';
 import { UserModule } from './user/user.module';
+import { TransactionsController } from './transactions/transactions.controller';
+import { TransactionsService } from './transactions/transactions.service';
+import { TransactionsModule } from './transactions/transactions.module';
 
 @Module({
-  imports: [ConfigModule.forRoot(), PrismaModule, AuthModule, UserModule, CardsModule, CategoriesModule],
-  controllers: [AppController, CategoriesController],
-  providers: [AppService, CategoriesService],
+  imports: [ConfigModule.forRoot(), PrismaModule, AuthModule, UserModule, CardsModule, CategoriesModule, TransactionsModule],
+  controllers: [AppController, CategoriesController, TransactionsController],
+  providers: [AppService, CategoriesService, TransactionsService],
 })
 export class AppModule {}

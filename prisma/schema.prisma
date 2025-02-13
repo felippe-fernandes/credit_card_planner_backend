@@ -54,7 +54,7 @@ model Transaction {
   dependentId      String?
   purchaseName     String
   purchaseCategory String
-  description      String
+  description      String?
   amount           Decimal
   date             DateTime
   installments     Int        @default(1)
