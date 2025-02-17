@@ -26,7 +26,7 @@ export class CardsController {
   }
 
   @Get('/search')
-  async findOneById(@Req() req: RequestWithUser, @Query('id') id?: string, @Query('name') name?: string) {
+  async findOne(@Req() req: RequestWithUser, @Query('id') id?: string, @Query('name') name?: string) {
     const userId = req.user.id;
     const query = { id, name };
     return this.cardService.findOne(userId, query);

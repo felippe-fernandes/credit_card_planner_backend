@@ -33,18 +33,20 @@ model Dependent {
 }
 
 model Card {
-  id           String        @id @default(cuid())
-  userId       String
-  name         String
-  bank         String
-  flag         String
-  limit        Decimal
-  dueDay       Int
-  payDay       Int
-  createdAt    DateTime      @default(now())
-  editedAt     DateTime?     @default(now()) @updatedAt @db.Timestamp(6)
-  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  transactions Transaction[]
+  id             String        @id @default(cuid())
+  userId         String
+  name           String
+  bank           String
+  flag           String
+  limit          Decimal
+  dueDay         Int
+  payDay         Int
+  createdAt      DateTime      @default(now())
+  editedAt       DateTime?     @default(now()) @updatedAt @db.Timestamp(6)
+  availableLimit Decimal       @default(0) @db.Decimal
+  simulatedLimit Decimal       @default(0) @db.Decimal
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions   Transaction[]
 }
 
 model Transaction {

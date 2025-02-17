@@ -1,4 +1,5 @@
 import { BadRequestException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
+import { Decimal } from '@prisma/client/runtime/library';
 import { PrismaService } from 'prisma/prisma.service';
 import {
   CreateTransactionDto,
@@ -10,6 +11,32 @@ import {
 @Injectable()
 export class TransactionsService {
   constructor(private prisma: PrismaService) {}
+
+  async updateCardAvailableLimit(cardId: string) {
+    const totalUsed = await this.prisma.transaction.aggregate({
+      _sum: { amount: true },
+      where: { cardId },
+    });
+
+    const existingCard = await this.prisma.card.findUnique({
+      where: { id: cardId },
+    });
+
+    if (!existingCard) {
+      throw new NotFoundException(`Card with id ${cardId} not found`);
+    }
+
+    const totalUsedAmount = totalUsed._sum.amount ?? 0;
+
+    const totalUsedDecimal = new Decimal(totalUsedAmount);
+
+    await this.prisma.card.update({
+      where: { id: cardId },
+      data: {
+        availableLimit: existingCard.limit.minus(totalUsedDecimal),
+      },
+    });
+  }
 
   async findAll(userId: string, filters: FindAllTransactionsDto) {
     const { purchaseName, ...restOfTheFilters } = filters;
@@ -134,24 +161,40 @@ export class TransactionsService {
         });
       }
 
-      const transactionsExists = await this.prisma.transaction.findUnique({
+      const cardExists = await this.prisma.card.findUnique({
         where: { id: createTransactionDto.cardId },
       });
 
-      if (!transactionsExists) {
+      if (!cardExists) {
         throw new BadRequestException({
           statusCode: HttpStatus.BAD_REQUEST,
-          message: `Transaction with id ${createTransactionDto.cardId} not found`,
+          message: `Card with id ${createTransactionDto.cardId} not found`,
         });
+      }
+
+      if (createTransactionDto.dependentId) {
+        const dependentExists = await this.prisma.dependent.findUnique({
+          where: { id: createTransactionDto.dependentId },
+        });
+
+        if (!dependentExists) {
+          throw new BadRequestException({
+            statusCode: HttpStatus.BAD_REQUEST,
+            message: `Dependent with id ${createTransactionDto.dependentId} not found`,
+          });
+        }
       }
 
       const transaction = await this.prisma.transaction.create({
         data: {
           ...createTransactionDto,
           userId,
-          cardId: createTransactionDto.cardId,
+          date: new Date(createTransactionDto.date),
+          dependentId: createTransactionDto.dependentId ?? userId,
         },
       });
+
+      await this.updateCardAvailableLimit(transaction.cardId);
 
       return {
         statusCode: HttpStatus.CREATED,
@@ -162,6 +205,7 @@ export class TransactionsService {
       if (error instanceof BadRequestException) {
         throw error;
       }
+
       throw new BadRequestException({
         statusCode: HttpStatus.BAD_REQUEST,
         message: 'Error creating transaction',
@@ -178,6 +222,8 @@ export class TransactionsService {
           userId,
         },
       });
+
+      await this.updateCardAvailableLimit(updatedTransaction.cardId);
 
       return {
         statusCode: HttpStatus.OK,

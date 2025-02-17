@@ -12,7 +12,7 @@ import { TransactionsService } from './transactions.service';
 @Controller('transactions')
 @UseGuards(AuthGuard)
 export class TransactionsController {
-  constructor(private transactionsService: TransactionsService) {}
+  constructor(private readonly transactionsService: TransactionsService) {}
 
   @Get()
   async findAll(
@@ -21,13 +21,11 @@ export class TransactionsController {
     @Query('dependent') dependent?: string,
     @Query('purchaseName') purchaseName?: string,
     @Query('purchaseCategory') purchaseCategory?: string,
-    @Query('amount') amount?: string,
     @Query('purchaseDate') purchaseDate?: string,
     @Query('installments') installments?: string,
   ) {
     const userId = req.user.id;
 
-    const amountDecimal = amount ? parseFloat(amount) : undefined;
     const installmentsNumber = installments ? parseInt(installments, 10) : undefined;
 
     const filters: FindAllTransactionsDto = {
@@ -35,7 +33,6 @@ export class TransactionsController {
       dependent,
       purchaseName,
       purchaseCategory,
-      amount: amountDecimal,
       purchaseDate,
       installments: installmentsNumber,
     };
@@ -44,7 +41,7 @@ export class TransactionsController {
   }
 
   @Get('/search')
-  async findOneById(@Req() req: RequestWithUser, @Query('id') id?: string) {
+  async findOne(@Req() req: RequestWithUser, @Query('id') id?: string) {
     const userId = req.user.id;
     const query: FindOneTransactionDto = { id };
     return this.transactionsService.findOne(userId, query);

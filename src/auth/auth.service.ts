@@ -37,7 +37,12 @@ export class AuthService {
           email,
           name,
           phone,
-          role,
+          dependents: {
+            create: {
+              name,
+              id: user.id,
+            },
+          },
           categories: {
             create: defaultCategories,
           },

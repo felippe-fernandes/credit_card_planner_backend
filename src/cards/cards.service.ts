@@ -135,6 +135,7 @@ export class CardsService {
       return {
         statusCode: HttpStatus.CREATED,
         message: 'Card created successfully',
+        count: 1,
         data: card,
       };
     } catch (error) {
@@ -150,6 +151,14 @@ export class CardsService {
 
   async update(userId: string, cardId: string, updateCardDto: UpdateCardDto) {
     try {
+      const existingCard = await this.prisma.card.findUnique({
+        where: { id: cardId },
+      });
+
+      if (!existingCard) {
+        throw new NotFoundException(`Card with id ${cardId} not found`);
+      }
+
       const updatedCard = await this.prisma.card.update({
         where: { id: cardId },
         data: {
@@ -157,6 +166,7 @@ export class CardsService {
           userId,
         },
       });
+
       return {
         statusCode: HttpStatus.OK,
         message: 'Card updated successfully',
@@ -171,9 +181,9 @@ export class CardsService {
   }
 
   async remove(userId: string, cardId: string) {
-    const category = await this.prisma.card.findUnique({ where: { id: cardId } });
+    const existingCategory = await this.prisma.card.findUnique({ where: { id: cardId } });
 
-    if (!category || category.userId !== userId) {
+    if (!existingCategory || existingCategory.userId !== userId) {
       throw new NotFoundException({
         statusCode: HttpStatus.NOT_FOUND,
         message: `Card with id ${cardId} not found`,
@@ -182,6 +192,6 @@ export class CardsService {
 
     await this.prisma.category.delete({ where: { id: cardId } });
 
-    return { statusCode: 200, message: 'Card deleted successfully' };
+    return { statusCode: HttpStatus.OK, message: 'Card deleted successfully' };
   }
 }

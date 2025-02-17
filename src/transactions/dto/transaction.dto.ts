@@ -1,8 +1,7 @@
-import { IsDateString, IsDecimal, IsInt, IsOptional, IsString, IsUUID } from 'class-validator';
+import { IsDateString, IsDecimal, IsInt, IsNumberString, IsOptional, IsString } from 'class-validator';
 
 export class CreateTransactionDto {
   @IsString()
-  @IsUUID()
   cardId: string;
 
   @IsString()
@@ -15,6 +14,7 @@ export class CreateTransactionDto {
   @IsOptional()
   description?: string;
 
+  @IsNumberString()
   @IsDecimal()
   amount: number;
 
@@ -23,6 +23,10 @@ export class CreateTransactionDto {
 
   @IsDateString()
   date: string;
+
+  @IsString()
+  @IsOptional()
+  dependentId: string;
 }
 
 export class UpdateTransactionDto {
@@ -38,6 +42,7 @@ export class UpdateTransactionDto {
   @IsOptional()
   description?: string;
 
+  @IsNumberString()
   @IsDecimal()
   @IsOptional()
   amount?: number;
@@ -49,6 +54,10 @@ export class UpdateTransactionDto {
   @IsDateString()
   @IsOptional()
   date?: string;
+
+  @IsString()
+  @IsOptional()
+  dependentId: string;
 }
 
 export class FindAllTransactionsDto {
@@ -67,10 +76,6 @@ export class FindAllTransactionsDto {
   @IsOptional()
   @IsString()
   purchaseCategory?: string;
-
-  @IsOptional()
-  @IsDecimal()
-  amount?: number;
 
   @IsOptional()
   @IsInt()
