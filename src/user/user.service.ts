@@ -2,7 +2,7 @@ import { BadRequestException, HttpStatus, Injectable, NotFoundException } from '
 import { PostgrestError } from '@supabase/supabase-js';
 import { PrismaService } from 'prisma/prisma.service';
 import { supabase } from 'src/auth/supabase.client';
-import { UpdateUserDto } from './dto/user.dto';
+import { UpdateUserDto, UpdateUserRoleDto } from './dto/user.dto';
 
 @Injectable()
 export class UserService {
@@ -62,10 +62,10 @@ export class UserService {
     }
   }
 
-  async update(id: string, updateUserDto: UpdateUserDto) {
+  async update(userId: string, updateUserDto: UpdateUserDto) {
     try {
       const updatedUser = await this.prisma.user.update({
-        where: { id },
+        where: { id: userId },
         data: updateUserDto,
       });
       return {
@@ -82,7 +82,34 @@ export class UserService {
       }
       throw new NotFoundException({
         statusCode: HttpStatus.NOT_FOUND,
-        message: `User with id ${id} not found`,
+        message: `User with id ${userId} not found`,
+      });
+    }
+  }
+
+  async updateRole(updateUserRoleDto: UpdateUserRoleDto) {
+    try {
+      const updatedUser = await this.prisma.user.update({
+        where: { id: updateUserRoleDto.userId },
+        data: {
+          role: updateUserRoleDto.newRole,
+        },
+      });
+      return {
+        statusCode: HttpStatus.OK,
+        message: 'User role updated successfully',
+        data: updatedUser,
+      };
+    } catch (error: unknown) {
+      if ((error as PostgrestError).code === 'P2002') {
+        throw new BadRequestException({
+          statusCode: HttpStatus.BAD_REQUEST,
+          message: 'Error updating user role: Duplicate value found',
+        });
+      }
+      throw new NotFoundException({
+        statusCode: HttpStatus.NOT_FOUND,
+        message: `User with id ${updateUserRoleDto.userId} not found`,
       });
     }
   }

@@ -1,3 +1,4 @@
+import { Role } from '@prisma/client';
 import { IsEmail, IsOptional, IsString } from 'class-validator';
 
 export class UpdateUserDto {
@@ -8,4 +9,12 @@ export class UpdateUserDto {
   @IsOptional()
   @IsEmail()
   email?: string;
+}
+
+export class UpdateUserRoleDto {
+  @IsString()
+  userId?: string;
+
+  @IsString()
+  newRole?: Role;
 }

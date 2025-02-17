@@ -3,7 +3,7 @@ import { AuthGuard } from 'src/auth/auth.guard';
 import { RequestWithUser } from 'src/auth/interfaces/auth.interface';
 import { Roles } from 'src/auth/roles/roles.decorator';
 import { RolesGuard } from 'src/auth/roles/roles.guard';
-import { UpdateUserDto } from './dto/user.dto';
+import { UpdateUserDto, UpdateUserRoleDto } from './dto/user.dto';
 import { UserService } from './user.service';
 
 @Controller('users')
@@ -25,6 +25,12 @@ export class UserController {
   @Patch('me')
   update(@Req() req: RequestWithUser, @Body() updateUserDto: UpdateUserDto) {
     return this.userService.update(req.user.id, updateUserDto);
+  }
+
+  @Patch('change-role')
+  @Roles('SUPER_ADMIN')
+  updateRole(@Body() updateUserDto: UpdateUserRoleDto) {
+    return this.userService.updateRole(updateUserDto);
   }
 
   @Delete('me')
