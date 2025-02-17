@@ -19,6 +19,7 @@ model User {
   cards        Card[]
   categories   Category[]
   dependents   Dependent[]
+  Invoice      Invoice[]
   transactions Transaction[]
 }
 
@@ -46,6 +47,7 @@ model Card {
   availableLimit Decimal       @default(0) @db.Decimal
   simulatedLimit Decimal       @default(0) @db.Decimal
   user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  Invoice        Invoice[]
   transactions   Transaction[]
 }
 
@@ -65,6 +67,10 @@ model Transaction {
   card             Card       @relation(fields: [cardId], references: [id], onDelete: Cascade)
   dependent        Dependent? @relation(fields: [dependentId], references: [id])
   user             User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([cardId, date], map: "idx_transaction_card_date")
+  @@index([dependentId], map: "idx_transaction_dependent")
+  @@index([userId, date], map: "idx_transaction_user_date")
 }
 
 model Category {
@@ -76,10 +82,38 @@ model Category {
   createdAt DateTime  @default(now())
   editedAt  DateTime? @default(now()) @updatedAt @db.Timestamp(6)
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId], map: "idx_category_user")
+}
+
+model Invoice {
+  id          String        @id @default(dbgenerated("gen_random_uuid()"))
+  cardId      String
+  userId      String
+  month       Int
+  year        Int
+  totalAmount Decimal       @db.Decimal
+  paidAmount  Decimal       @default(0) @db.Decimal
+  dueDate     DateTime      @db.Timestamp(6)
+  status      InvoiceStatus @default(PENDING)
+  createdAt   DateTime      @default(now()) @db.Timestamp(6)
+  card        Card          @relation(fields: [cardId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([cardId], map: "idx_invoice_cardId")
+  @@index([month, year], map: "idx_invoice_month_year")
+  @@index([userId], map: "idx_invoice_userId")
+  @@index([userId, dueDate], map: "idx_invoice_user_duedate")
 }
 
 enum Role {
   USER
   ADMIN
   SUPER_ADMIN
+}
+
+enum InvoiceStatus {
+  PENDING
+  PAID
+  OVERDUE
 }
