@@ -7,18 +7,8 @@ import { CreateDependentDto, FindAllDependentsDto, UpdateDependentDto } from './
 export class DependentsController {
   constructor(private readonly dependentsService: DependentsService) {}
 
-  @Post()
-  create(@Req() req: RequestWithUser, @Body() createDependentDto: CreateDependentDto) {
-    const userId = req.user.id;
-    return this.dependentsService.create(userId, createDependentDto);
-  }
-
   @Get()
-  findAll(
-    @Req() req: RequestWithUser,
-    @Query('dependentId') dependentId?: string,
-    @Query('name') name?: string,
-  ) {
+  findAll(@Req() req: RequestWithUser, @Query('id') dependentId?: string, @Query('name') name?: string) {
     const filters: FindAllDependentsDto = {
       dependentId,
       name,
@@ -32,6 +22,12 @@ export class DependentsController {
     const userId = req.user.id;
     const query = { id, name };
     return this.dependentsService.findOne(userId, query);
+  }
+
+  @Post()
+  create(@Req() req: RequestWithUser, @Body() createDependentDto: CreateDependentDto) {
+    const userId = req.user.id;
+    return this.dependentsService.create(userId, createDependentDto);
   }
 
   @Patch(':id')

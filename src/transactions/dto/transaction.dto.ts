@@ -94,4 +94,29 @@ export class FindOneTransactionDto {
   @IsString()
   @IsOptional()
   purchaseName?: string;
+
+  @IsString()
+  @IsOptional()
+  dependentId?: string;
+
+  @IsString()
+  @IsOptional()
+  cardId?: string;
+
+  @IsString()
+  @IsOptional()
+  purchaseCategory?: string;
+
+  @IsString()
+  @IsOptional()
+  description?: string;
+
+  @IsOptional()
+  @IsDateString()
+  purchaseDate?: string;
+
+  @IsOptional()
+  @IsNumberString()
+  @IsInt()
+  installments?: string;
 }

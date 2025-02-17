@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { AuthGuard } from 'src/auth/auth.guard';
 import { RequestWithUser } from 'src/auth/interfaces/auth.interface';
 import { CardsService } from './cards.service';
@@ -38,7 +38,7 @@ export class CardsController {
     return this.cardService.create(userId, createCardDto);
   }
 
-  @Put(':id')
+  @Patch(':id')
   async update(
     @Req() req: RequestWithUser,
     @Param('id') cardId: string,

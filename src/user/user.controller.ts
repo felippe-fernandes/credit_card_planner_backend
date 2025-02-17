@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Patch, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Patch, Put, Req, UseGuards } from '@nestjs/common';
 import { AuthGuard } from 'src/auth/auth.guard';
 import { RequestWithUser } from 'src/auth/interfaces/auth.interface';
 import { Roles } from 'src/auth/roles/roles.decorator';
@@ -27,7 +27,7 @@ export class UserController {
     return this.userService.update(req.user.id, updateUserDto);
   }
 
-  @Patch('change-role')
+  @Put('change-role')
   @Roles('SUPER_ADMIN')
   updateRole(@Body() updateUserDto: UpdateUserRoleDto) {
     return this.userService.updateRole(updateUserDto);

@@ -41,9 +41,28 @@ export class TransactionsController {
   }
 
   @Get('/search')
-  async findOne(@Req() req: RequestWithUser, @Query('id') id?: string) {
+  async findOne(
+    @Req() req: RequestWithUser,
+    @Query('id') id?: string,
+    @Query('purchaseName') purchaseName?: string,
+    @Query('dependentId') dependentId?: string,
+    @Query('cardId') cardId?: string,
+    @Query('purchaseCategory') purchaseCategory?: string,
+    @Query('description') description?: string,
+    @Query('purchaseDate') purchaseDate?: string,
+    @Query('installments') installments?: string,
+  ) {
     const userId = req.user.id;
-    const query: FindOneTransactionDto = { id };
+    const query: FindOneTransactionDto = {
+      id,
+      purchaseName,
+      dependentId,
+      cardId,
+      purchaseCategory,
+      description,
+      purchaseDate,
+      installments,
+    };
     return this.transactionsService.findOne(userId, query);
   }
 

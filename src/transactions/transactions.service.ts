@@ -116,8 +116,11 @@ export class TransactionsService {
         where: {
           userId,
           AND: {
+            ...query,
+            installments: { equals: parseInt(query.installments ?? '1') },
             id: { equals: query.id },
             purchaseName: { contains: query.purchaseName, mode: 'insensitive' },
+            description: { contains: query.description, mode: 'insensitive' },
           },
         },
       });
