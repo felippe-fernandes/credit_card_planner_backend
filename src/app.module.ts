@@ -14,6 +14,9 @@ import { TransactionsController } from './transactions/transactions.controller';
 import { TransactionsModule } from './transactions/transactions.module';
 import { TransactionsService } from './transactions/transactions.service';
 import { UserModule } from './user/user.module';
+import { InvoiceController } from './invoice/invoice.controller';
+import { InvoiceService } from './invoice/invoice.service';
+import { InvoiceModule } from './invoice/invoice.module';
 
 @Module({
   imports: [
@@ -25,8 +28,9 @@ import { UserModule } from './user/user.module';
     CategoriesModule,
     TransactionsModule,
     DependentsModule,
+    InvoiceModule,
   ],
-  controllers: [AppController, CategoriesController, TransactionsController],
-  providers: [AppService, CategoriesService, TransactionsService, DependentsService],
+  controllers: [AppController, CategoriesController, TransactionsController, InvoiceController],
+  providers: [AppService, CategoriesService, TransactionsService, DependentsService, InvoiceService],
 })
 export class AppModule {}
