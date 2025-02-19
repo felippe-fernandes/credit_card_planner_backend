@@ -1,5 +1,6 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { Role } from '@prisma/client';
+import { Response } from 'express';
 import { PrismaService } from 'prisma/prisma.service';
 import { defaultCategories } from 'src/constants/categories';
 import { LoginDto, SignupDto } from './dto/auth.dto';
@@ -71,7 +72,7 @@ export class AuthService {
     return this.signUpUserWithRole(payload, 'SUPER_ADMIN');
   }
 
-  async signIn(payload: LoginDto) {
+  async signIn(payload: LoginDto, res: Response) {
     const { email, password } = payload;
 
     const { data, error } = await supabase.auth.signInWithPassword({
@@ -86,6 +87,15 @@ export class AuthService {
     if (!data.session) {
       throw new HttpException('Invalid session', HttpStatus.UNAUTHORIZED);
     }
+
+    const { access_token } = data.session;
+
+    res.cookie('auth_token', access_token, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
 
     return {
       message: 'Login successful',
