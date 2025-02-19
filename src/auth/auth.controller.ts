@@ -1,4 +1,5 @@
-import { Body, Controller, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, HttpStatus, Post, Req, Res, UseGuards } from '@nestjs/common';
+import { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 import { LoginDto, SignupDto } from './dto/auth.dto';
 import { RequestWithUser } from './interfaces/auth.interface';
@@ -28,8 +29,19 @@ export class AuthController {
   }
 
   @Post('login')
-  async signIn(@Body() body: LoginDto) {
-    return await this.authService.signIn(body);
+  async signIn(@Body() body: LoginDto, @Res({ passthrough: true }) response: Response) {
+    return await this.authService.signIn(body, response);
+  }
+
+  checkAuth(@Req() req: Request, @Res() res: Response) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    const token = req.cookies['auth_token'];
+
+    if (!token) {
+      return res.status(HttpStatus.UNAUTHORIZED).json({ isAuthenticated: false });
+    }
+
+    return res.status(HttpStatus.OK).json({ isAuthenticated: true });
   }
 
   @Post('signout')
