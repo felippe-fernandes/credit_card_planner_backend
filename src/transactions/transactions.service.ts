@@ -27,7 +27,6 @@ export class TransactionsService {
     }
 
     const totalUsedAmount = totalUsed._sum.amount ?? 0;
-
     const totalUsedDecimal = new Decimal(totalUsedAmount);
 
     await this.prisma.card.update({
@@ -47,16 +46,9 @@ export class TransactionsService {
           userId,
           AND: {
             ...restOfTheFilters,
-            purchaseName: {
-              contains: purchaseName,
-              mode: 'insensitive',
-            },
-            card: {
-              id: restOfTheFilters.card,
-            },
-            dependent: {
-              id: restOfTheFilters.dependent,
-            },
+            purchaseName: purchaseName ? { contains: purchaseName, mode: 'insensitive' } : undefined,
+            card: restOfTheFilters.card ? { id: restOfTheFilters.card } : undefined,
+            dependent: restOfTheFilters.dependent ? { id: restOfTheFilters.dependent } : undefined,
           },
         },
       });
@@ -66,32 +58,18 @@ export class TransactionsService {
           userId,
           AND: {
             ...restOfTheFilters,
-            purchaseName: {
-              contains: purchaseName,
-              mode: 'insensitive',
-            },
-            card: {
-              id: restOfTheFilters.card,
-            },
-            dependent: {
-              id: restOfTheFilters.dependent,
-            },
+            purchaseName: purchaseName ? { contains: purchaseName, mode: 'insensitive' } : undefined,
+            card: restOfTheFilters.card ? { id: restOfTheFilters.card } : undefined,
+            dependent: restOfTheFilters.dependent ? { id: restOfTheFilters.dependent } : undefined,
           },
         },
       });
 
-      if (transactions.length === 0) {
-        return {
-          statusCode: HttpStatus.NOT_FOUND,
-          message: 'No transactions found for this user',
-          count: 0,
-          data: [],
-        };
-      }
-
       return {
-        statusCode: HttpStatus.OK,
-        message: 'Transactions retrieved successfully',
+        statusCode: transactions.length ? HttpStatus.OK : HttpStatus.NOT_FOUND,
+        message: transactions.length
+          ? 'Transactions retrieved successfully'
+          : 'No transactions found for this user',
         count: transactionCount,
         data: transactions,
       };
@@ -117,10 +95,12 @@ export class TransactionsService {
           userId,
           AND: {
             ...query,
-            installments: { equals: parseInt(query.installments ?? '1') },
-            id: { equals: query.id },
-            purchaseName: { contains: query.purchaseName, mode: 'insensitive' },
-            description: { contains: query.description, mode: 'insensitive' },
+            id: query.id ? { equals: query.id } : undefined,
+            purchaseName: query.purchaseName
+              ? { contains: query.purchaseName, mode: 'insensitive' }
+              : undefined,
+            description: query.description ? { contains: query.description, mode: 'insensitive' } : undefined,
+            installments: query.installments ? { equals: parseInt(query.installments) } : undefined,
           },
         },
       });
@@ -141,9 +121,7 @@ export class TransactionsService {
         data: transaction,
       };
     } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw error;
-      }
+      if (error instanceof NotFoundException) throw error;
       throw new BadRequestException({
         statusCode: HttpStatus.BAD_REQUEST,
         message: 'Failed to retrieve transaction',
@@ -152,77 +130,58 @@ export class TransactionsService {
   }
 
   async create(userId: string, createTransactionDto: CreateTransactionDto) {
-    try {
-      const userExists = await this.prisma.user.findUnique({
-        where: { id: userId },
-      });
+    const { amount, installments, installmentValues, ...rest } = createTransactionDto;
 
-      if (!userExists) {
-        throw new BadRequestException({
-          statusCode: HttpStatus.BAD_REQUEST,
-          message: `User with id ${userId} not found`,
-        });
-      }
-
-      const cardExists = await this.prisma.card.findUnique({
-        where: { id: createTransactionDto.cardId },
-      });
-
-      if (!cardExists) {
-        throw new BadRequestException({
-          statusCode: HttpStatus.BAD_REQUEST,
-          message: `Card with id ${createTransactionDto.cardId} not found`,
-        });
-      }
-
-      if (createTransactionDto.dependentId) {
-        const dependentExists = await this.prisma.dependent.findUnique({
-          where: { id: createTransactionDto.dependentId },
-        });
-
-        if (!dependentExists) {
-          throw new BadRequestException({
-            statusCode: HttpStatus.BAD_REQUEST,
-            message: `Dependent with id ${createTransactionDto.dependentId} not found`,
-          });
-        }
-      }
-
-      const transaction = await this.prisma.transaction.create({
-        data: {
-          ...createTransactionDto,
-          userId,
-          date: new Date(createTransactionDto.date),
-          dependentId: createTransactionDto.dependentId ?? userId,
-        },
-      });
-
-      await this.updateCardAvailableLimit(transaction.cardId);
-
-      return {
-        statusCode: HttpStatus.CREATED,
-        message: 'Transaction created successfully',
-        data: transaction,
-      };
-    } catch (error) {
-      if (error instanceof BadRequestException) {
-        throw error;
-      }
-
-      throw new BadRequestException({
-        statusCode: HttpStatus.BAD_REQUEST,
-        message: 'Error creating transaction',
-      });
+    if (installmentValues.length !== installments) {
+      throw new BadRequestException(
+        `Número de parcelas (${installments}) não bate com os valores informados (${installmentValues.length})`,
+      );
     }
+
+    const totalInstallments = installmentValues.reduce(
+      (sum, value) => sum.plus(new Decimal(value)),
+      new Decimal(0),
+    );
+
+    if (!totalInstallments.equals(new Decimal(amount))) {
+      throw new BadRequestException(
+        `A soma das parcelas (${totalInstallments.toString()}) deve ser igual ao valor total da compra (${amount})`,
+      );
+    }
+
+    const transaction = await this.prisma.transaction.create({
+      data: {
+        ...rest,
+        userId,
+        amount: new Decimal(amount),
+        installments,
+        date: new Date(rest.date),
+      },
+    });
+
+    await this.updateCardAvailableLimit(transaction.cardId);
+
+    return {
+      statusCode: HttpStatus.CREATED,
+      message: 'Transaction created successfully',
+      data: transaction,
+    };
   }
 
   async update(userId: string, transactionId: string, updateTransactionDto: UpdateTransactionDto) {
     try {
+      const existingTransaction = await this.prisma.transaction.findUnique({
+        where: { id: transactionId },
+      });
+
+      if (!existingTransaction) {
+        throw new NotFoundException(`Transaction with id ${transactionId} not found`);
+      }
+
       const updatedTransaction = await this.prisma.transaction.update({
         where: { id: transactionId },
         data: {
           ...updateTransactionDto,
-          userId,
         },
       });
 
@@ -234,10 +193,7 @@ export class TransactionsService {
         data: updatedTransaction,
       };
     } catch {
-      throw new NotFoundException({
-        statusCode: HttpStatus.NOT_FOUND,
-        message: `Transaction with id ${transactionId} not found`,
-      });
+      throw new NotFoundException(`Transaction with id ${transactionId} not found`);
     }
   }
 

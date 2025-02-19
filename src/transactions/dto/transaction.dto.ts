@@ -1,4 +1,15 @@
-import { IsDateString, IsDecimal, IsInt, IsNumberString, IsOptional, IsString } from 'class-validator';
+import { Transaction } from '@prisma/client';
+import {
+  ArrayMinSize,
+  IsArray,
+  IsDateString,
+  IsDecimal,
+  IsInt,
+  IsNumberString,
+  IsOptional,
+  IsString,
+  ValidateIf,
+} from 'class-validator';
 
 export class CreateTransactionDto {
   @IsString()
@@ -21,12 +32,18 @@ export class CreateTransactionDto {
   @IsInt()
   installments: number;
 
+  @IsArray()
+  @ArrayMinSize(1)
+  @ValidateIf((obj: Transaction) => obj.installments > 1)
+  @IsDecimal({}, { each: true })
+  installmentValues: number[];
+
   @IsDateString()
   date: string;
 
   @IsString()
   @IsOptional()
-  dependentId: string;
+  dependentId?: string;
 }
 
 export class UpdateTransactionDto {
@@ -51,13 +68,20 @@ export class UpdateTransactionDto {
   @IsOptional()
   installments?: number;
 
+  @IsArray()
+  @ArrayMinSize(1)
+  @ValidateIf((obj: Transaction) => obj.installments > 1)
+  @IsDecimal({}, { each: true })
+  @IsOptional()
+  installmentValues?: number[];
+
   @IsDateString()
   @IsOptional()
   date?: string;
 
   @IsString()
   @IsOptional()
-  dependentId: string;
+  dependentId?: string;
 }
 
 export class FindAllTransactionsDto {

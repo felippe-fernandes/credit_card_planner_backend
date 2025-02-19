@@ -9,13 +9,15 @@ datasource db {
 }
 
 model User {
-  id           String        @id @default(cuid())
-  email        String        @unique
-  name         String
-  createdAt    DateTime      @default(now())
-  phone        String?
-  editedAt     DateTime?     @default(now()) @updatedAt @db.Timestamp(6)
-  role         Role          @default(USER)
+  id    String  @id @default(cuid())
+  email String  @unique
+  name  String
+  phone String?
+  role  Role    @default(USER)
+
+  createdAt DateTime  @default(now())
+  editedAt  DateTime? @default(now()) @updatedAt @db.Timestamp(6)
+
   cards        Card[]
   categories   Category[]
   dependents   Dependent[]
@@ -24,17 +26,19 @@ model User {
 }
 
 model Dependent {
-  id          String        @id @default(cuid())
-  userId      String
-  name        String
-  createdAt   DateTime      @default(now())
-  editedAt    DateTime?     @default(now()) @updatedAt @db.Timestamp(6)
+  id     String @id @default(cuid())
+  userId String
+  name   String
+
+  createdAt DateTime  @default(now())
+  editedAt  DateTime? @default(now()) @updatedAt @db.Timestamp(6)
+
   user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   Transaction Transaction[]
 }
 
 model Card {
-  id             String        @id @default(cuid())
+  id             String  @id @default(cuid())
   userId         String
   name           String
   bank           String
@@ -42,31 +46,36 @@ model Card {
   limit          Decimal
   dueDay         Int
   payDay         Int
-  createdAt      DateTime      @default(now())
-  editedAt       DateTime?     @default(now()) @updatedAt @db.Timestamp(6)
-  availableLimit Decimal       @default(0) @db.Decimal
-  simulatedLimit Decimal       @default(0) @db.Decimal
-  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  Invoice        Invoice[]
-  transactions   Transaction[]
+  availableLimit Decimal @default(0) @db.Decimal
+  simulatedLimit Decimal @default(0) @db.Decimal
+
+  createdAt DateTime  @default(now())
+  editedAt  DateTime? @default(now()) @updatedAt @db.Timestamp(6)
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  Invoice      Invoice[]
+  transactions Transaction[]
 }
 
 model Transaction {
-  id               String     @id @default(cuid())
-  cardId           String
-  userId           String
-  dependentId      String?
-  purchaseName     String
-  purchaseCategory String
-  description      String?
-  amount           Decimal
-  date             DateTime
-  installments     Int        @default(1)
-  createdAt        DateTime   @default(now())
-  editedAt         DateTime?  @default(now()) @updatedAt @db.Timestamp(6)
-  card             Card       @relation(fields: [cardId], references: [id], onDelete: Cascade)
-  dependent        Dependent? @relation(fields: [dependentId], references: [id])
-  user             User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                String    @id @default(cuid())
+  cardId            String
+  userId            String
+  dependentId       String?
+  purchaseName      String
+  purchaseCategory  String
+  description       String?
+  amount            Decimal
+  date              DateTime
+  installments      Int       @default(1)
+  installmentsValue Decimal[]
+
+  createdAt DateTime  @default(now())
+  editedAt  DateTime? @default(now()) @updatedAt @db.Timestamp(6)
+
+  card      Card       @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  dependent Dependent? @relation(fields: [dependentId], references: [id])
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([cardId, date], map: "idx_transaction_card_date")
   @@index([dependentId], map: "idx_transaction_dependent")
@@ -74,14 +83,16 @@ model Transaction {
 }
 
 model Category {
-  id        String    @id @default(cuid())
-  name      String
-  icon      String    @default("➕")
-  color     String    @default("#000000")
-  userId    String
+  id     String @id @default(cuid())
+  name   String
+  icon   String @default("➕")
+  color  String @default("#000000")
+  userId String
+
   createdAt DateTime  @default(now())
   editedAt  DateTime? @default(now()) @updatedAt @db.Timestamp(6)
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId], map: "idx_category_user")
 }
@@ -96,10 +107,13 @@ model Invoice {
   paidAmount  Decimal       @default(0) @db.Decimal
   dueDate     DateTime      @db.Timestamp(6)
   status      InvoiceStatus @default(PENDING)
-  createdAt   DateTime      @default(now()) @db.Timestamp(6)
-  card        Card          @relation(fields: [cardId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
+  createdAt DateTime @default(now()) @db.Timestamp(6)
+
+  card Card @relation(fields: [cardId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([cardId, userId, month, year])
   @@index([cardId], map: "idx_invoice_cardId")
   @@index([month, year], map: "idx_invoice_month_year")
   @@index([userId], map: "idx_invoice_userId")
