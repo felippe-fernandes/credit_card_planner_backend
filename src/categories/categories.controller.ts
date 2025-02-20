@@ -10,15 +10,17 @@ export class CategoriesController {
   constructor(private categoryService: CategoriesService) {}
 
   @Get()
-  async findAll(@Req() req: RequestWithUser) {
-    return this.categoryService.findAll(req.user.id);
+  async findAll(@Req() req: RequestWithUser, @Query('id') id?: string, @Query('name') name?: string) {
+    const userId = req.user.id;
+    const filters = { id, name };
+    return this.categoryService.findAll(userId, filters);
   }
 
   @Get('/search')
   async findOne(@Req() req: RequestWithUser, @Query('id') id?: string, @Query('name') name?: string) {
     const userId = req.user.id;
-    const query = { id, name };
-    return this.categoryService.findOne(userId, query);
+    const filters = { id, name };
+    return this.categoryService.findOne(userId, filters);
   }
 
   @Post()
