@@ -1,7 +1,7 @@
 import { BadRequestException, HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { Role, User } from '@prisma/client';
 import { Session } from '@supabase/supabase-js';
-import { Response } from 'express';
+import { Request, Response } from 'express';
 import { PrismaService } from 'prisma/prisma.service';
 import { defaultCategories } from 'src/constants/categories';
 import { IReceivedData } from 'src/interceptors/response.interceptor';
@@ -54,6 +54,7 @@ export class AuthService {
 
       return {
         message: `${role} successfully created`,
+        count: 1,
         result: newUser,
         statusCode: HttpStatus.CREATED,
       };
@@ -120,6 +121,23 @@ export class AuthService {
     return {
       statusCode: HttpStatus.OK,
       message: 'Logout successful',
+    };
+  }
+
+  check(req: Request): IReceivedData<{ isAuthenticated: boolean }> {
+    const token = req.cookies['auth_token'];
+
+    if (!token) {
+      return {
+        statusCode: HttpStatus.UNAUTHORIZED,
+        message: 'Unauthorized',
+        result: { isAuthenticated: false },
+      };
+    }
+    return {
+      statusCode: HttpStatus.OK,
+      message: 'Authorized',
+      result: { isAuthenticated: true },
     };
   }
 }
