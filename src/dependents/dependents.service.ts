@@ -216,6 +216,6 @@ export class DependentsService {
 
     await this.prisma.dependent.delete({ where: { id } });
 
-    return { statusCode: HttpStatus.OK, message: 'Dependent deleted successfully' };
+    return { result: null, statusCode: HttpStatus.OK, message: 'Dependent deleted successfully' };
   }
 }

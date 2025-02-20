@@ -2,8 +2,8 @@ import { CallHandler, ExecutionContext, HttpStatus, Injectable, NestInterceptor 
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 
-export interface IReceivedData<T = any> {
-  result?: T;
+export interface IReceivedData<T = null> {
+  result: T;
   message: string;
   statusCode: HttpStatus;
   count?: number;
@@ -16,12 +16,15 @@ export class ResponseInterceptor<T extends IReceivedData<T>> implements NestInte
       map((data) => {
         const response = {
           success: true,
-          data: data.result,
           message: data.message,
         };
 
         if (data.count !== undefined) {
           response['count'] = data.count;
+        }
+
+        if (data.result !== null) {
+          response['data'] = data.result;
         }
 
         return response;

@@ -46,6 +46,7 @@ export class InvoiceService {
       await this.upsertInvoices(invoicesMap);
 
       return {
+        result: null,
         statusCode: HttpStatus.CREATED,
         message: 'Invoices updated!',
       };

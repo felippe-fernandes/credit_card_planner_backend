@@ -128,6 +128,7 @@ export class UserService {
       await supabase.auth.admin.deleteUser(id);
 
       return {
+        result: null,
         statusCode: HttpStatus.OK,
         message: 'User deleted successfully',
       };

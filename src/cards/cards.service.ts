@@ -209,6 +209,6 @@ export class CardsService {
 
     await this.prisma.category.delete({ where: { id: cardId } });
 
-    return { statusCode: HttpStatus.OK, message: 'Card deleted successfully' };
+    return { result: null, statusCode: HttpStatus.OK, message: 'Card deleted successfully' };
   }
 }

@@ -119,6 +119,7 @@ export class AuthService {
     }
 
     return {
+      result: null,
       statusCode: HttpStatus.OK,
       message: 'Logout successful',
     };

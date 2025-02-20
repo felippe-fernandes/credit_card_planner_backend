@@ -233,6 +233,6 @@ export class CategoriesService {
 
     await this.prisma.category.delete({ where: { id: categoryId } });
 
-    return { statusCode: 200, message: 'Category deleted successfully' };
+    return { result: null, statusCode: 200, message: 'Category deleted successfully' };
   }
 }
