@@ -221,7 +221,7 @@ export class CategoriesService {
     }
   }
 
-  async remove(categoryId: string, userId: string): Promise<IReceivedData> {
+  async remove(categoryId: string, userId: string): Promise<IReceivedData<{ categoryId: Category['id'] }>> {
     const existingCategory = await this.prisma.category.findUnique({ where: { id: categoryId } });
 
     if (!existingCategory || existingCategory.userId !== userId) {
@@ -233,6 +233,6 @@ export class CategoriesService {
 
     await this.prisma.category.delete({ where: { id: categoryId } });
 
-    return { statusCode: 200, message: 'Category deleted successfully' };
+    return { result: { categoryId }, statusCode: 200, message: 'Category deleted successfully' };
   }
 }

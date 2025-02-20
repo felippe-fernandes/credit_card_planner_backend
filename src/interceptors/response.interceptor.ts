@@ -3,7 +3,7 @@ import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 
 export interface IReceivedData<T = any> {
-  result?: T;
+  result: T;
   message: string;
   statusCode: HttpStatus;
   count?: number;
