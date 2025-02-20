@@ -35,7 +35,7 @@ export class InvoiceService {
     return invoicesMap;
   }
 
-  async updateManyInvoices(): Promise<IReceivedData> {
+  async updateManyInvoices(): Promise<IReceivedData<{ invoicesIds: Invoice['id'][] }>> {
     try {
       const transactions = await this.prisma.transaction.findMany({
         include: { card: true },
@@ -46,7 +46,7 @@ export class InvoiceService {
       await this.upsertInvoices(invoicesMap);
 
       return {
-        result: null,
+        result: { invoicesIds: Array.from(invoicesMap.keys()) },
         statusCode: HttpStatus.CREATED,
         message: 'Invoices updated!',
       };

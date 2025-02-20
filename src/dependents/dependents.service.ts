@@ -202,20 +202,23 @@ export class DependentsService {
     }
   }
 
-  async remove(userId: string, id: string): Promise<IReceivedData> {
+  async remove(
+    userId: string,
+    dependentId: string,
+  ): Promise<IReceivedData<{ dependentId: Dependent['id'] }>> {
     const existingDependent = await this.prisma.dependent.findUnique({
-      where: { id },
+      where: { id: dependentId },
     });
 
     if (!existingDependent || existingDependent.userId !== userId) {
       throw new NotFoundException({
         statusCode: HttpStatus.NOT_FOUND,
-        message: `Dependent with id ${id} not found`,
+        message: `Dependent with id ${dependentId} not found`,
       });
     }
 
-    await this.prisma.dependent.delete({ where: { id } });
+    await this.prisma.dependent.delete({ where: { id: dependentId } });
 
-    return { result: null, statusCode: HttpStatus.OK, message: 'Dependent deleted successfully' };
+    return { result: { dependentId }, statusCode: HttpStatus.OK, message: 'Dependent deleted successfully' };
   }
 }

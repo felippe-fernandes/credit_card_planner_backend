@@ -197,7 +197,7 @@ export class CardsService {
     }
   }
 
-  async remove(userId: string, cardId: string): Promise<IReceivedData> {
+  async remove(userId: string, cardId: string): Promise<IReceivedData<{ cardId: Card['id'] }>> {
     const existingCard = await this.prisma.card.findUnique({ where: { id: cardId } });
 
     if (!existingCard || existingCard.userId !== userId) {
@@ -209,6 +209,6 @@ export class CardsService {
 
     await this.prisma.category.delete({ where: { id: cardId } });
 
-    return { result: null, statusCode: HttpStatus.OK, message: 'Card deleted successfully' };
+    return { result: { cardId }, statusCode: HttpStatus.OK, message: 'Card deleted successfully' };
   }
 }

@@ -24,7 +24,7 @@ export class AuthController {
 
   @Post('signup/super-admin')
   @Roles('SUPER_ADMIN')
-  async signUpSuperAdmin(@Req() req: RequestWithUser, @Body() body: SignupDto) {
+  async signUpSuperAdmin(@Body() body: SignupDto) {
     return await this.authService.signUpSuperAdmin(body);
   }
 
@@ -39,7 +39,8 @@ export class AuthController {
   }
 
   @Post('signout')
-  async signOut() {
-    return await this.authService.signOut();
+  async signOut(@Req() req: RequestWithUser) {
+    const userId = req.user.id;
+    return await this.authService.signOut(userId);
   }
 }

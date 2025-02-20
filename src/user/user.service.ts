@@ -119,23 +119,23 @@ export class UserService {
     }
   }
 
-  async remove(id: string): Promise<IReceivedData> {
+  async remove(userId: string): Promise<IReceivedData<{ userId: User['id'] }>> {
     try {
       await this.prisma.user.delete({
-        where: { id },
+        where: { id: userId },
       });
 
-      await supabase.auth.admin.deleteUser(id);
+      await supabase.auth.admin.deleteUser(userId);
 
       return {
-        result: null,
+        result: { userId },
         statusCode: HttpStatus.OK,
         message: 'User deleted successfully',
       };
     } catch {
       throw new NotFoundException({
         statusCode: HttpStatus.NOT_FOUND,
-        message: `User with id ${id} not found`,
+        message: `User with id ${userId} not found`,
       });
     }
   }

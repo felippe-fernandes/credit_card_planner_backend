@@ -108,7 +108,7 @@ export class AuthService {
     };
   }
 
-  async signOut(): Promise<IReceivedData> {
+  async signOut(userId: User['id']): Promise<IReceivedData<{ userId: User['id'] }>> {
     const { error } = await supabase.auth.signOut();
 
     if (error) {
@@ -119,7 +119,9 @@ export class AuthService {
     }
 
     return {
-      result: null,
+      result: {
+        userId,
+      },
       statusCode: HttpStatus.OK,
       message: 'Logout successful',
     };
