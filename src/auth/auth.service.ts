@@ -54,7 +54,6 @@ export class AuthService {
 
       return {
         message: `${role} successfully created`,
-        count: 1,
         result: newUser,
         statusCode: HttpStatus.CREATED,
       };

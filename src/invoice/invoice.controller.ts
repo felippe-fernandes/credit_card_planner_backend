@@ -7,11 +7,11 @@ export class InvoiceController {
 
   @Post('update')
   async updateInvoices() {
-    return this.invoiceService.updateManyInvoices();
+    return this.invoiceService.updateInvoices();
   }
 
   @Get(':userId')
   async getInvoices(@Param('userId') userId: string) {
-    return this.invoiceService.FindAll(userId);
+    return this.invoiceService.getInvoices(userId);
   }
 }
