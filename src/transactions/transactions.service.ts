@@ -243,7 +243,10 @@ export class TransactionsService {
     }
   }
 
-  async remove(userId: string, transactionId: string): Promise<IReceivedData<Transaction>> {
+  async remove(
+    userId: string,
+    transactionId: string,
+  ): Promise<IReceivedData<{ transactionId: Transaction['id'] }>> {
     const existingTransaction = await this.prisma.transaction.findUnique({
       where: { id: transactionId },
     });
@@ -258,6 +261,7 @@ export class TransactionsService {
     await this.prisma.transaction.delete({ where: { id: transactionId } });
 
     return {
+      result: { transactionId },
       statusCode: HttpStatus.OK,
       message: 'Transaction deleted successfully',
     };
