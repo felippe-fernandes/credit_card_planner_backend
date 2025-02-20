@@ -1,4 +1,4 @@
-import { Body, Controller, HttpStatus, Post, Req, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, Req, Res, UseGuards } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 import { LoginDto, SignupDto } from './dto/auth.dto';
@@ -33,15 +33,9 @@ export class AuthController {
     return await this.authService.signIn(body, response);
   }
 
-  checkAuth(@Req() req: Request, @Res() res: Response) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    const token = req.cookies['auth_token'];
-
-    if (!token) {
-      return res.status(HttpStatus.UNAUTHORIZED).json({ isAuthenticated: false });
-    }
-
-    return res.status(HttpStatus.OK).json({ isAuthenticated: true });
+  @Get('check-auth')
+  checkAuth(@Req() req: Request) {
+    return this.authService.check(req);
   }
 
   @Post('signout')
