@@ -53,7 +53,7 @@ export class TransactionsController {
     @Query('installments') installments?: string,
   ) {
     const userId = req.user.id;
-    const query: FindOneTransactionDto = {
+    const filters: FindOneTransactionDto = {
       id,
       purchaseName,
       dependentId,
@@ -63,7 +63,7 @@ export class TransactionsController {
       purchaseDate,
       installments,
     };
-    return this.transactionsService.findOne(userId, query);
+    return this.transactionsService.findOne(userId, filters);
   }
 
   @Post()

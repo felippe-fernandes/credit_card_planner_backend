@@ -29,6 +29,16 @@ export class UpdateCategoryDto {
   color?: string;
 }
 
+export class FindAllCategoryDto {
+  @IsOptional()
+  @IsString()
+  id?: string;
+
+  @IsOptional()
+  @IsString()
+  name?: string;
+}
+
 export class FindOneCategoryDto {
   @IsOptional()
   @IsString()

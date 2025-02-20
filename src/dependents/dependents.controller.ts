@@ -1,9 +1,11 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { AuthGuard } from 'src/auth/auth.guard';
 import { RequestWithUser } from 'src/auth/interfaces/auth.interface';
 import { DependentsService } from './dependents.service';
 import { CreateDependentDto, FindAllDependentsDto, UpdateDependentDto } from './dto/dependents.dto';
 
 @Controller('dependents')
+@UseGuards(AuthGuard)
 export class DependentsController {
   constructor(private readonly dependentsService: DependentsService) {}
 
@@ -20,8 +22,8 @@ export class DependentsController {
   @Get('/search')
   findOne(@Req() req: RequestWithUser, @Query('id') id?: string, @Query('name') name?: string) {
     const userId = req.user.id;
-    const query = { id, name };
-    return this.dependentsService.findOne(userId, query);
+    const filters = { id, name };
+    return this.dependentsService.findOne(userId, filters);
   }
 
   @Post()

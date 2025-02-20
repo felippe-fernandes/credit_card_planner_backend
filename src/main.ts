@@ -4,6 +4,7 @@ import { NestFactory } from '@nestjs/core';
 import * as cookieParser from 'cookie-parser';
 import * as dotenv from 'dotenv';
 import { AppModule } from './app.module';
+import { ResponseInterceptor } from './interceptors/response.interceptor';
 
 dotenv.config();
 
@@ -22,7 +23,9 @@ async function bootstrap() {
     }),
   );
 
-  await app.listen(process.env.PORT ?? 3000);
+  app.useGlobalInterceptors(new ResponseInterceptor());
+
+  await app.listen(process.env.PORT ?? 3001);
 
   app.use(cookieParser());
 }

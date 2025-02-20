@@ -1,8 +1,10 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import { Role } from '@prisma/client';
+import { BadRequestException, HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { Role, User } from '@prisma/client';
+import { Session } from '@supabase/supabase-js';
 import { Response } from 'express';
 import { PrismaService } from 'prisma/prisma.service';
 import { defaultCategories } from 'src/constants/categories';
+import { IReceivedData } from 'src/interceptors/response.interceptor';
 import { LoginDto, SignupDto } from './dto/auth.dto';
 import { supabase } from './supabase.client';
 
@@ -10,7 +12,7 @@ import { supabase } from './supabase.client';
 export class AuthService {
   constructor(private prisma: PrismaService) {}
 
-  private async signUpUserWithRole(payload: SignupDto, role: Role) {
+  private async signUpUserWithRole(payload: SignupDto, role: Role): Promise<IReceivedData<User>> {
     const { email, password, name, phone } = payload;
 
     const { data, error } = await supabase.auth.signUp({
@@ -52,7 +54,8 @@ export class AuthService {
 
       return {
         message: `${role} successfully created`,
-        user: newUser,
+        result: newUser,
+        statusCode: HttpStatus.CREATED,
       };
     } catch {
       await supabase.auth.admin.deleteUser(user.id);
@@ -72,7 +75,7 @@ export class AuthService {
     return this.signUpUserWithRole(payload, 'SUPER_ADMIN');
   }
 
-  async signIn(payload: LoginDto, res: Response) {
+  async signIn(payload: LoginDto, res: Response): Promise<IReceivedData<Session>> {
     const { email, password } = payload;
 
     const { data, error } = await supabase.auth.signInWithPassword({
@@ -99,17 +102,24 @@ export class AuthService {
 
     return {
       message: 'Login successful',
-      session: data.session,
+      result: data.session,
+      statusCode: HttpStatus.OK,
     };
   }
 
-  async signOut() {
+  async signOut(): Promise<IReceivedData> {
     const { error } = await supabase.auth.signOut();
 
     if (error) {
-      throw new HttpException(`Error logging out: ${error.message}`, HttpStatus.BAD_REQUEST);
+      throw new BadRequestException({
+        statusCode: HttpStatus.BAD_REQUEST,
+        message: `Error logging out: ${error.message}`,
+      });
     }
 
-    return { message: 'Logout successful' };
+    return {
+      statusCode: HttpStatus.OK,
+      message: 'Logout successful',
+    };
   }
 }

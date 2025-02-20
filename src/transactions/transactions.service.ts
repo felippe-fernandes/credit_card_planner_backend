@@ -1,6 +1,9 @@
 import { BadRequestException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
+import { Transaction } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
+import { PostgrestError } from '@supabase/supabase-js';
 import { PrismaService } from 'prisma/prisma.service';
+import { IReceivedData } from 'src/interceptors/response.interceptor';
 import {
   CreateTransactionDto,
   FindAllTransactionsDto,
@@ -37,7 +40,7 @@ export class TransactionsService {
     });
   }
 
-  async findAll(userId: string, filters: FindAllTransactionsDto) {
+  async findAll(userId: string, filters: FindAllTransactionsDto): Promise<IReceivedData<Transaction[]>> {
     const { purchaseName, ...restOfTheFilters } = filters;
 
     try {
@@ -65,13 +68,20 @@ export class TransactionsService {
         },
       });
 
+      if (transactions.length === 0) {
+        throw new NotFoundException({
+          statusCode: HttpStatus.NOT_FOUND,
+          message: 'No transactions found for this user',
+          count: 0,
+          data: null,
+        });
+      }
+
       return {
-        statusCode: transactions.length ? HttpStatus.OK : HttpStatus.NOT_FOUND,
-        message: transactions.length
-          ? 'Transactions retrieved successfully'
-          : 'No transactions found for this user',
+        statusCode: HttpStatus.OK,
+        message: 'Transactions retrieved successfully',
         count: transactionCount,
-        data: transactions,
+        result: transactions,
       };
     } catch {
       throw new BadRequestException({
@@ -81,8 +91,8 @@ export class TransactionsService {
     }
   }
 
-  async findOne(userId: string, query: FindOneTransactionDto) {
-    if (!query.id && !query.purchaseName) {
+  async findOne(userId: string, filters: FindOneTransactionDto): Promise<IReceivedData<Transaction>> {
+    if (!filters.id && !filters.purchaseName) {
       throw new BadRequestException({
         statusCode: HttpStatus.BAD_REQUEST,
         message: 'Please provide an id or purchaseName to search for',
@@ -94,13 +104,15 @@ export class TransactionsService {
         where: {
           userId,
           AND: {
-            ...query,
-            id: query.id ? { equals: query.id } : undefined,
-            purchaseName: query.purchaseName
-              ? { contains: query.purchaseName, mode: 'insensitive' }
+            ...filters,
+            id: filters.id ? { equals: filters.id } : undefined,
+            purchaseName: filters.purchaseName
+              ? { contains: filters.purchaseName, mode: 'insensitive' }
               : undefined,
-            description: query.description ? { contains: query.description, mode: 'insensitive' } : undefined,
-            installments: query.installments ? { equals: parseInt(query.installments) } : undefined,
+            description: filters.description
+              ? { contains: filters.description, mode: 'insensitive' }
+              : undefined,
+            installments: filters.installments ? { equals: parseInt(filters.installments) } : undefined,
           },
         },
       });
@@ -118,10 +130,12 @@ export class TransactionsService {
         statusCode: HttpStatus.OK,
         message: 'Transaction retrieved successfully',
         count: 1,
-        data: transaction,
+        result: transaction,
       };
     } catch (error) {
-      if (error instanceof NotFoundException) throw error;
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
       throw new BadRequestException({
         statusCode: HttpStatus.BAD_REQUEST,
         message: 'Failed to retrieve transaction',
@@ -129,7 +143,10 @@ export class TransactionsService {
     }
   }
 
-  async create(userId: string, createTransactionDto: CreateTransactionDto) {
+  async create(
+    userId: string,
+    createTransactionDto: CreateTransactionDto,
+  ): Promise<IReceivedData<Transaction>> {
     const { amount, installments, installmentValues, ...rest } = createTransactionDto;
 
     if (installmentValues.length !== installments) {
@@ -149,26 +166,44 @@ export class TransactionsService {
       );
     }
 
-    const transaction = await this.prisma.transaction.create({
-      data: {
-        ...rest,
-        userId,
-        amount: new Decimal(amount),
-        installments,
-        date: new Date(rest.date),
-      },
-    });
+    try {
+      const transaction = await this.prisma.transaction.create({
+        data: {
+          ...rest,
+          userId,
+          amount: new Decimal(amount),
+          installments,
+          date: new Date(rest.date),
+        },
+      });
 
-    await this.updateCardAvailableLimit(transaction.cardId);
+      await this.updateCardAvailableLimit(transaction.cardId);
 
-    return {
-      statusCode: HttpStatus.CREATED,
-      message: 'Transaction created successfully',
-      data: transaction,
-    };
+      return {
+        statusCode: HttpStatus.CREATED,
+        message: 'Transaction created successfully',
+        result: transaction,
+      };
+    } catch (error: unknown) {
+      if ((error as PostgrestError).code === 'P2002') {
+        throw new BadRequestException({
+          statusCode: HttpStatus.BAD_REQUEST,
+          message: 'Error transaction card: Duplicate value found',
+        });
+      } else {
+        throw new BadRequestException({
+          statusCode: HttpStatus.BAD_REQUEST,
+          message: 'Error creating transaction',
+        });
+      }
+    }
   }
 
-  async update(userId: string, transactionId: string, updateTransactionDto: UpdateTransactionDto) {
+  async update(
+    userId: string,
+    transactionId: string,
+    updateTransactionDto: UpdateTransactionDto,
+  ): Promise<IReceivedData<Transaction>> {
     try {
       const existingTransaction = await this.prisma.transaction.findUnique({
         where: { id: transactionId },
@@ -190,19 +225,30 @@ export class TransactionsService {
       return {
         statusCode: HttpStatus.OK,
         message: 'Transaction updated successfully',
-        data: updatedTransaction,
+        count: 1,
+        result: updatedTransaction,
       };
-    } catch {
-      throw new NotFoundException(`Transaction with id ${transactionId} not found`);
+    } catch (error: unknown) {
+      if ((error as PostgrestError).code === 'P2002') {
+        throw new BadRequestException({
+          statusCode: HttpStatus.BAD_REQUEST,
+          message: 'Error updating transaction: Duplicate value found',
+        });
+      } else {
+        throw new NotFoundException({
+          statusCode: HttpStatus.NOT_FOUND,
+          message: `Transaction with id ${userId} not found`,
+        });
+      }
     }
   }
 
-  async remove(userId: string, transactionId: string) {
-    const transaction = await this.prisma.transaction.findUnique({
+  async remove(userId: string, transactionId: string): Promise<IReceivedData<Transaction>> {
+    const existingTransaction = await this.prisma.transaction.findUnique({
       where: { id: transactionId },
     });
 
-    if (!transaction || transaction.userId !== userId) {
+    if (!existingTransaction || existingTransaction.userId !== userId) {
       throw new NotFoundException({
         statusCode: HttpStatus.NOT_FOUND,
         message: `Transaction with id ${transactionId} not found`,
