@@ -1,7 +1,13 @@
-import { BadRequestException, HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  HttpException,
+  HttpStatus,
+  Injectable,
+} from '@nestjs/common';
 import { Role, User } from '@prisma/client';
 import { Session } from '@supabase/supabase-js';
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { PrismaService } from 'prisma/prisma.service';
 import { defaultCategories } from 'src/constants/categories';
 import { IReceivedData } from 'src/interceptors/response.interceptor';
@@ -98,7 +104,7 @@ export class AuthService {
       httpOnly: true,
       secure: true,
       sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
+      maxAge: 60 * 60 * 1000,
     });
 
     return {
@@ -127,20 +133,30 @@ export class AuthService {
     };
   }
 
-  check(req: Request): IReceivedData<{ isAuthenticated: boolean }> {
-    const token = req.cookies['auth_token'];
-
-    if (!token) {
-      return {
-        statusCode: HttpStatus.UNAUTHORIZED,
-        message: 'Unauthorized',
-        result: { isAuthenticated: false },
-      };
+  async deleteUser(userId: string) {
+    if (!userId) {
+      throw new BadRequestException({
+        statusCode: HttpStatus.BAD_REQUEST,
+        message: 'User ID is required.',
+      });
     }
-    return {
-      statusCode: HttpStatus.OK,
-      message: 'Authorized',
-      result: { isAuthenticated: true },
-    };
+
+    const { error } = await supabase.auth.admin.deleteUser(userId);
+
+    if (error) {
+      if (error.message.includes('User not allowed')) {
+        throw new ForbiddenException({
+          statusCode: HttpStatus.FORBIDDEN,
+          message: 'You are not allowed to delete this user.',
+        });
+      }
+
+      throw new BadRequestException({
+        statusCode: HttpStatus.BAD_REQUEST,
+        message: `Error deleting user: ${error.message}`,
+      });
+    }
+
+    return { message: 'User successfully deleted.' };
   }
 }

@@ -1,5 +1,5 @@
-import { Body, Controller, Get, Post, Req, Res, UseGuards } from '@nestjs/common';
-import { Request, Response } from 'express';
+import { Body, Controller, Post, Req, Res, UseGuards } from '@nestjs/common';
+import { Response } from 'express';
 import { AuthService } from './auth.service';
 import { LoginDto, SignupDto } from './dto/auth.dto';
 import { RequestWithUser } from './interfaces/auth.interface';
@@ -31,11 +31,6 @@ export class AuthController {
   @Post('login')
   async signIn(@Body() body: LoginDto, @Res({ passthrough: true }) response: Response) {
     return await this.authService.signIn(body, response);
-  }
-
-  @Get('check-auth')
-  checkAuth(@Req() req: Request) {
-    return this.authService.check(req);
   }
 
   @Post('signout')
