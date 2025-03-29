@@ -202,6 +202,15 @@ export class TransactionsService {
       );
     }
 
+    if (
+      finalInstallmentValues.some((value) => value.lte(0) || value.isNaN()) ||
+      !finalInstallmentValues.reduce((sum, value) => sum.plus(value), new Decimal(0)).equals(amountDecimal)
+    ) {
+      throw new BadRequestException(
+        `Invalid installment values. Ensure all values are positive, valid numbers, and their sum equals the total amount (${amountDecimal.toString()})`,
+      );
+    }
+
     const totalInstallments = finalInstallmentValues.reduce((sum, value) => sum.plus(value), new Decimal(0));
 
     if (!totalInstallments.equals(amountDecimal)) {
@@ -267,6 +276,27 @@ export class TransactionsService {
 
       if (!existingTransaction) {
         throw new NotFoundException(`Transaction with id ${transactionId} not found`);
+      }
+
+      const amountDecimal = new Decimal(updateTransactionDto.amount ?? existingTransaction.amount);
+
+      const finalInstallmentValues: Decimal[] = (updateTransactionDto.installmentValues ?? []).map(
+        (value) => new Decimal(value),
+      );
+
+      if (finalInstallmentValues.length !== updateTransactionDto.installments) {
+        throw new BadRequestException(
+          `Number of installments (${updateTransactionDto.installments}) does not match the provided values (${finalInstallmentValues.length})`,
+        );
+      }
+
+      if (
+        finalInstallmentValues.some((value) => value.lte(0) || value.isNaN()) ||
+        !finalInstallmentValues.reduce((sum, value) => sum.plus(value), new Decimal(0)).equals(amountDecimal)
+      ) {
+        throw new BadRequestException(
+          `Invalid installment values. Ensure all values are positive, valid numbers, and their sum equals the total amount (${amountDecimal.toString()})`,
+        );
       }
 
       const updatedTransaction = await this.prisma.transaction.update({

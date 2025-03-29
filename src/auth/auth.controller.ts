@@ -1,5 +1,5 @@
 import { Body, Controller, Post, Req, Res, UseGuards } from '@nestjs/common';
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 import { AuthService } from './auth.service';
 import { LoginDto, SignupDto } from './dto/auth.dto';
@@ -23,6 +23,7 @@ export class AuthController {
   }
 
   @Post('signup/admin')
+  @ApiBearerAuth()
   @Roles('SUPER_ADMIN')
   @ApiOperation({ summary: 'Create a new admin' })
   @ApiResponse({ status: 201, description: 'Admin created successfully.' })
@@ -33,6 +34,7 @@ export class AuthController {
   }
 
   @Post('signup/super-admin')
+  @ApiBearerAuth()
   @Roles('SUPER_ADMIN')
   @ApiOperation({ summary: 'Create a new super admin' })
   @ApiResponse({ status: 201, description: 'Super admin created successfully.' })
@@ -59,7 +61,6 @@ export class AuthController {
   @ApiResponse({ status: 403, description: 'Forbidden.' })
   @ApiResponse({ status: 500, description: 'Error retrieving user from Supabase.' })
   async signOut(@Req() req: RequestWithUser, @Res({ passthrough: true }) response: Response) {
-    const userId = req.user.id;
-    return await this.authService.signOut(userId, response);
+    return await this.authService.signOut(response);
   }
 }

@@ -37,8 +37,7 @@ export class TransactionsController {
   @ApiQuery({
     name: 'installmentDates',
     required: false,
-    description: 'Installment dates',
-    example: '02/2025,05/2025',
+    description: 'Installment dates. E.g. 02/2025, 05/2025',
   })
   async findAll(
     @Req() req: RequestWithUser,
@@ -115,15 +114,19 @@ export class TransactionsController {
     schema: {
       type: 'object',
       properties: {
-        purchaseName: { type: 'string', example: 'Groceries' },
-        purchaseCategory: { type: 'string', example: 'Food' },
-        purchaseDate: { type: 'string', example: '2023-10-01' },
-        installments: { type: 'number', example: 3 },
-        cardId: { type: 'string', example: 'cardId123' },
-        dependentId: { type: 'string', example: 'dependentId123' },
-        description: { type: 'string', example: 'Monthly groceries' },
-        amount: { type: 'number', example: 150.0 },
-        installmentValues: { type: 'array', items: { type: 'number' }, example: [50.0, 50.0, 50.0] },
+        purchaseName: { type: 'string' },
+        purchaseCategory: { type: 'string' },
+        purchaseDate: { type: 'string' },
+        installments: { type: 'number' },
+        cardId: { type: 'string' },
+        dependentId: { type: 'string' },
+        description: { type: 'string' },
+        amount: { type: 'number' },
+        installmentValues: {
+          type: 'array',
+          items: { type: 'number' },
+          description: 'Installment values. E.g. [100, 200]',
+        },
       },
     },
   })
@@ -141,15 +144,19 @@ export class TransactionsController {
     schema: {
       type: 'object',
       properties: {
-        purchaseName: { type: 'string', example: 'Updated Groceries' },
-        purchaseCategory: { type: 'string', example: 'Updated Food' },
-        purchaseDate: { type: 'string', example: '2023-10-02' },
-        installments: { type: 'number', example: 4 },
-        cardId: { type: 'string', example: 'updatedCardId123' },
-        dependentId: { type: 'string', example: 'updatedDependentId123' },
-        description: { type: 'string', example: 'Updated monthly groceries' },
-        amount: { type: 'number', example: 200.0 },
-        installmentValues: { type: 'array', items: { type: 'number' }, example: [50.0, 50.0, 50.0, 50.0] },
+        purchaseName: { type: 'string' },
+        purchaseCategory: { type: 'string' },
+        purchaseDate: { type: 'string' },
+        installments: { type: 'number' },
+        cardId: { type: 'string' },
+        dependentId: { type: 'string' },
+        description: { type: 'string' },
+        amount: { type: 'number' },
+        installmentValues: {
+          type: 'array',
+          items: { type: 'number' },
+          description: 'Installment values. E.g. [100, 200]',
+        },
       },
     },
   })

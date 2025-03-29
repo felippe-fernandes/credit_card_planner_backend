@@ -25,8 +25,8 @@ export class CategoriesController {
     summary: 'Get all categories',
     description: 'Retrieve all categories for the authenticated user.',
   })
-  @ApiQuery({ name: 'id', required: false, description: 'Filter by category ID', example: '12345' })
-  @ApiQuery({ name: 'name', required: false, description: 'Filter by category name', example: 'Groceries' })
+  @ApiQuery({ name: 'id', required: false, description: 'Filter by category ID' })
+  @ApiQuery({ name: 'name', required: false, description: 'Filter by category name' })
   async findAll(@Req() req: RequestWithUser, @Query('id') id?: string, @Query('name') name?: string) {
     const userId = req.user.id;
     const filters = { id, name };
@@ -35,7 +35,7 @@ export class CategoriesController {
 
   @Get('/search')
   @ApiOperation({ summary: 'Find a category', description: 'Find a specific category by ID or name.' })
-  @ApiQuery({ name: 'name', required: false, description: 'Category name', example: 'Groceries' })
+  @ApiQuery({ name: 'name', required: false, description: 'Category name' })
   async findOne(@Req() req: RequestWithUser, @Query('id') id?: string, @Query('name') name?: string) {
     const userId = req.user.id;
     const filters: FindOneCategoryDto = { name };
@@ -48,9 +48,9 @@ export class CategoriesController {
     schema: {
       type: 'object',
       properties: {
-        name: { type: 'string', example: 'Groceries' },
-        icon: { type: 'string', example: 'shopping-cart' },
-        color: { type: 'string', example: '#FF5733' },
+        name: { type: 'string' },
+        icon: { type: 'string' },
+        color: { type: 'string' },
       },
     },
   })
@@ -61,14 +61,14 @@ export class CategoriesController {
 
   @Patch(':name')
   @ApiOperation({ summary: 'Update a category' })
-  @ApiParam({ name: 'id', description: 'Category ID', example: '12345' })
+  @ApiParam({ name: 'id', description: 'Category ID' })
   @ApiBody({
     schema: {
       type: 'object',
       properties: {
-        name: { type: 'string', example: 'Groceries' },
-        icon: { type: 'string', example: 'shopping-cart' },
-        color: { type: 'string', example: '#FF5733' },
+        name: { type: 'string' },
+        icon: { type: 'string' },
+        color: { type: 'string' },
       },
     },
   })
@@ -83,7 +83,7 @@ export class CategoriesController {
 
   @Delete(':name')
   @ApiOperation({ summary: 'Delete a category' })
-  @ApiParam({ name: 'name', description: 'Category name', example: 'Groceries' })
+  @ApiParam({ name: 'name', description: 'Category name' })
   async remove(@Req() req: RequestWithUser, @Param('name') name: string) {
     return this.categoryService.remove(name, req.user.id);
   }

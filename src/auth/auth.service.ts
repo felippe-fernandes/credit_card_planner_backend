@@ -46,6 +46,7 @@ export class AuthService {
           email,
           name,
           phone,
+          role,
           dependents: {
             create: {
               name,
@@ -114,7 +115,7 @@ export class AuthService {
     };
   }
 
-  async signOut(userId: User['id'], res: Response): Promise<IReceivedData<{ userId: User['id'] }>> {
+  async signOut(res: Response): Promise<IReceivedData> {
     const { error } = await supabase.auth.signOut();
 
     if (error) {
@@ -127,15 +128,13 @@ export class AuthService {
     res.clearCookie('auth_token');
 
     return {
-      result: {
-        userId,
-      },
+      result: {},
       statusCode: HttpStatus.OK,
       message: 'Logout successful',
     };
   }
 
-  async deleteUser(userId: string) {
+  async deleteUser(userId: string, res: Response) {
     if (!userId) {
       throw new BadRequestException({
         statusCode: HttpStatus.BAD_REQUEST,
@@ -158,6 +157,8 @@ export class AuthService {
         message: `Error deleting user: ${error.message}`,
       });
     }
+
+    res.clearCookie('auth_token');
 
     return { message: 'User successfully deleted.' };
   }

@@ -50,9 +50,9 @@ export class CardsController {
   @ApiResponse({ status: 200, description: 'Card retrieved successfully' })
   @ApiResponse({ status: 400, description: 'Please provide an id or name to search for' })
   @ApiResponse({ status: 404, description: 'Card not found' })
-  @ApiQuery({ name: 'id', required: false, description: 'Card ID', example: '12345' })
-  @ApiQuery({ name: 'name', required: false, description: 'Card name', example: 'My Card' })
-  @ApiQuery({ name: 'bank', required: false, description: 'Bank name', example: 'Bank Name' })
+  @ApiQuery({ name: 'id', required: false, description: 'Card ID' })
+  @ApiQuery({ name: 'name', required: false, description: 'Card name' })
+  @ApiQuery({ name: 'bank', required: false, description: 'Bank name' })
   async findOne(
     @Req() req: RequestWithUser,
     @Query('id') id?: string,
@@ -78,17 +78,17 @@ export class CardsController {
   @ApiResponse({ status: 200, description: 'Card updated successfully' })
   @ApiResponse({ status: 400, description: 'Failed to update card' })
   @ApiResponse({ status: 404, description: 'Card not found' })
-  @ApiParam({ name: 'id', required: true, description: 'Card ID', example: '12345' })
+  @ApiParam({ name: 'id', required: true, description: 'Card ID' })
   @ApiBody({
     schema: {
       type: 'object',
       properties: {
-        name: { type: 'string', example: 'Updated Card Name' },
-        bank: { type: 'string', example: 'Updated Bank Name' },
-        flag: { type: 'string', example: 'MasterCard' },
-        limit: { type: 'number', example: 1500.0 },
-        dueDay: { type: 'number', example: 20 },
-        payDay: { type: 'number', example: 25 },
+        name: { type: 'string' },
+        bank: { type: 'string' },
+        flag: { type: 'string' },
+        limit: { type: 'number' },
+        dueDay: { type: 'number' },
+        payDay: { type: 'number' },
       },
     },
   })
@@ -105,7 +105,7 @@ export class CardsController {
   @ApiOperation({ summary: 'Delete a card' })
   @ApiResponse({ status: 200, description: 'Card deleted successfully' })
   @ApiResponse({ status: 404, description: 'Card not found' })
-  @ApiParam({ name: 'id', required: true, description: 'Card ID', example: '12345' })
+  @ApiParam({ name: 'id', required: true, description: 'Card ID' })
   async remove(@Req() req: RequestWithUser, @Param('id') cardId: string) {
     const userId = req.user.id;
     return this.cardService.remove(userId, cardId);

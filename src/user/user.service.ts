@@ -2,7 +2,6 @@ import { BadRequestException, HttpStatus, Injectable, NotFoundException } from '
 import { User } from '@prisma/client';
 import { PostgrestError } from '@supabase/supabase-js';
 import { PrismaService } from 'prisma/prisma.service';
-import { supabase } from 'src/auth/supabase.client';
 import { IReceivedData } from 'src/interceptors/response.interceptor';
 import { UpdateUserDto, UpdateUserRoleDto } from './dto/user.dto';
 
@@ -124,8 +123,6 @@ export class UserService {
       await this.prisma.user.delete({
         where: { id: userId },
       });
-
-      await supabase.auth.admin.deleteUser(userId);
 
       return {
         result: { userId },

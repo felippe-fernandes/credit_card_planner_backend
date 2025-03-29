@@ -24,8 +24,8 @@ export class DependentsController {
 
   @Get()
   @ApiOperation({ summary: 'Retrieve all dependents for a user' })
-  @ApiQuery({ name: 'name', required: false, description: 'Filter dependents by name', example: 'John' })
-  @ApiQuery({ name: 'id', required: false, description: 'Filter dependents by ID', example: '12345' })
+  @ApiQuery({ name: 'name', required: false, description: 'Filter dependents by name' })
+  @ApiQuery({ name: 'id', required: false, description: 'Filter dependents by ID' })
   @ApiOkResponse({ type: ReceivedDataDto })
   @ApiResponse({ status: 404, description: 'No dependents found' })
   findAll(@Req() req: RequestWithUser, @Query('id') dependentId?: string, @Query('name') name?: string) {
@@ -39,8 +39,8 @@ export class DependentsController {
 
   @Get('/search')
   @ApiOperation({ summary: 'Retrieve a specific dependent by ID or name' })
-  @ApiQuery({ name: 'id', required: false, description: 'Dependent ID', example: '12345' })
-  @ApiQuery({ name: 'name', required: false, description: 'Dependent name', example: 'John Doe' })
+  @ApiQuery({ name: 'id', required: false, description: 'Dependent ID' })
+  @ApiQuery({ name: 'name', required: false, description: 'Dependent name' })
   @ApiResponse({ status: 200, description: 'Dependent retrieved successfully' })
   @ApiResponse({ status: 404, description: 'Dependent not found' })
   findOne(@Req() req: RequestWithUser, @Query('id') id?: string, @Query('name') name?: string) {
@@ -55,7 +55,7 @@ export class DependentsController {
     schema: {
       type: 'object',
       properties: {
-        name: { type: 'string', example: 'John Doe' },
+        name: { type: 'string' },
       },
     },
   })
@@ -68,12 +68,12 @@ export class DependentsController {
 
   @Patch(':id')
   @ApiOperation({ summary: 'Update a dependent' })
-  @ApiParam({ name: 'id', description: 'Dependent ID', example: '12345' })
+  @ApiParam({ name: 'id', description: 'Dependent ID' })
   @ApiBody({
     schema: {
       type: 'object',
       properties: {
-        name: { type: 'string', example: 'John Doe' },
+        name: { type: 'string' },
       },
     },
   })
@@ -90,7 +90,7 @@ export class DependentsController {
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a dependent' })
-  @ApiParam({ name: 'id', description: 'Dependent ID', example: '12345' })
+  @ApiParam({ name: 'id', description: 'Dependent ID' })
   @ApiResponse({ status: 200, description: 'Dependent deleted successfully' })
   @ApiResponse({ status: 404, description: 'Dependent not found' })
   remove(@Req() req: RequestWithUser, @Param('id') id: string) {
