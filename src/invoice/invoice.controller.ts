@@ -21,7 +21,7 @@ export class InvoiceController {
   @ApiResponse({ status: 200, description: 'Invoices retrieved successfully' })
   @ApiResponse({ status: 404, description: 'No invoices found for this user' })
   @ApiResponse({ status: 400, description: 'Failed to retrieve invoices' })
-  @ApiParam({ name: 'userId', required: true, description: 'User ID' })
+  @ApiParam({ name: 'userId', required: true, description: 'User ID', example: '12345' })
   async getInvoices(@Param('userId') userId: string) {
     return this.invoiceService.FindAll(userId);
   }

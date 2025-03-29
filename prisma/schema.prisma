@@ -80,7 +80,6 @@ model Transaction {
 }
 
 model Category {
-  id     String @id @default(cuid())
   name   String
   icon   String @default("➕")
   color  String @default("#000000")
@@ -91,6 +90,7 @@ model Category {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@unique([name, userId], map: "idx_category_name_user")
   @@index([userId], map: "idx_category_user")
 }
 

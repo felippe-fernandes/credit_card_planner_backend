@@ -2,6 +2,7 @@ import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, UseGuard
 import {
   ApiBearerAuth,
   ApiBody,
+  ApiOkResponse,
   ApiOperation,
   ApiParam,
   ApiQuery,
@@ -11,7 +12,7 @@ import {
 import { AuthGuard } from 'src/auth/auth.guard';
 import { RequestWithUser } from 'src/auth/interfaces/auth.interface';
 import { CardsService } from './cards.service';
-import { CreateCardDto, FindOneCardDto, UpdateCardDto } from './dto/cards.dto';
+import { CreateCardDto, FindOneCardDto, ResultCardDto, UpdateCardDto } from './dto/cards.dto';
 
 @Controller('cards')
 @ApiTags('Cards')
@@ -22,13 +23,13 @@ export class CardsController {
 
   @Get()
   @ApiOperation({ summary: 'Retrieve all cards for the authenticated user' })
-  @ApiResponse({ status: 200, description: 'Cards retrieved successfully' })
+  @ApiOkResponse({ type: ResultCardDto })
   @ApiResponse({ status: 400, description: 'Failed to retrieve cards' })
-  @ApiQuery({ name: 'flag', required: false, description: 'Card flag', example: 'Visa' })
-  @ApiQuery({ name: 'bank', required: false, description: 'Bank name', example: 'Bank Name' })
-  @ApiQuery({ name: 'dueDay', required: false, description: 'Due day', example: '15' })
-  @ApiQuery({ name: 'payDay', required: false, description: 'Pay day', example: '30' })
-  @ApiQuery({ name: 'name', required: false, description: 'Card name', example: 'My Card' })
+  @ApiQuery({ name: 'flag', required: false, description: 'Card flag' })
+  @ApiQuery({ name: 'bank', required: false, description: 'Bank name' })
+  @ApiQuery({ name: 'dueDay', required: false, description: 'Due day' })
+  @ApiQuery({ name: 'payDay', required: false, description: 'Pay day' })
+  @ApiQuery({ name: 'name', required: false, description: 'Card name' })
   async findAll(
     @Req() req: RequestWithUser,
     @Query('flag') flag?: string,
@@ -67,19 +68,6 @@ export class CardsController {
   @ApiOperation({ summary: 'Create a new card for the authenticated user' })
   @ApiResponse({ status: 201, description: 'Card created successfully' })
   @ApiResponse({ status: 400, description: 'Failed to create card' })
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: {
-        name: { type: 'string', example: 'My Card' },
-        bank: { type: 'string', example: 'Bank Name' },
-        flag: { type: 'string', example: 'Visa' },
-        limit: { type: 'number', example: 1000.0 },
-        dueDay: { type: 'number', example: 15 },
-        payDay: { type: 'number', example: 30 },
-      },
-    },
-  })
   async create(@Req() req: RequestWithUser, @Body() createCardDto: CreateCardDto) {
     const userId = req.user.id;
     return this.cardService.create(userId, createCardDto);

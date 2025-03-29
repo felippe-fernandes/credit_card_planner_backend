@@ -2,6 +2,7 @@ import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, UseGuard
 import {
   ApiBearerAuth,
   ApiBody,
+  ApiOkResponse,
   ApiOperation,
   ApiParam,
   ApiQuery,
@@ -10,21 +11,22 @@ import {
 } from '@nestjs/swagger';
 import { AuthGuard } from 'src/auth/auth.guard';
 import { RequestWithUser } from 'src/auth/interfaces/auth.interface';
+import { ReceivedDataDto } from 'src/constants';
 import { DependentsService } from './dependents.service';
 import { CreateDependentDto, FindAllDependentsDto, UpdateDependentDto } from './dto/dependents.dto';
 
+@Controller('dependents')
 @ApiTags('Dependents')
 @ApiBearerAuth()
-@Controller('dependents')
 @UseGuards(AuthGuard)
 export class DependentsController {
   constructor(private readonly dependentsService: DependentsService) {}
 
   @Get()
   @ApiOperation({ summary: 'Retrieve all dependents for a user' })
-  @ApiQuery({ name: 'name', required: false, description: 'Filter dependents by name' })
-  @ApiQuery({ name: 'id', required: false, description: 'Filter dependents by ID' })
-  @ApiResponse({ status: 200, description: 'Dependents retrieved successfully' })
+  @ApiQuery({ name: 'name', required: false, description: 'Filter dependents by name', example: 'John' })
+  @ApiQuery({ name: 'id', required: false, description: 'Filter dependents by ID', example: '12345' })
+  @ApiOkResponse({ type: ReceivedDataDto })
   @ApiResponse({ status: 404, description: 'No dependents found' })
   findAll(@Req() req: RequestWithUser, @Query('id') dependentId?: string, @Query('name') name?: string) {
     const filters: FindAllDependentsDto = {
@@ -37,8 +39,8 @@ export class DependentsController {
 
   @Get('/search')
   @ApiOperation({ summary: 'Retrieve a specific dependent by ID or name' })
-  @ApiQuery({ name: 'id', required: false, description: 'Dependent ID' })
-  @ApiQuery({ name: 'name', required: false, description: 'Dependent name' })
+  @ApiQuery({ name: 'id', required: false, description: 'Dependent ID', example: '12345' })
+  @ApiQuery({ name: 'name', required: false, description: 'Dependent name', example: 'John Doe' })
   @ApiResponse({ status: 200, description: 'Dependent retrieved successfully' })
   @ApiResponse({ status: 404, description: 'Dependent not found' })
   findOne(@Req() req: RequestWithUser, @Query('id') id?: string, @Query('name') name?: string) {
@@ -66,7 +68,7 @@ export class DependentsController {
 
   @Patch(':id')
   @ApiOperation({ summary: 'Update a dependent' })
-  @ApiParam({ name: 'id', description: 'Dependent ID' })
+  @ApiParam({ name: 'id', description: 'Dependent ID', example: '12345' })
   @ApiBody({
     schema: {
       type: 'object',
@@ -88,7 +90,7 @@ export class DependentsController {
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a dependent' })
-  @ApiParam({ name: 'id', description: 'Dependent ID' })
+  @ApiParam({ name: 'id', description: 'Dependent ID', example: '12345' })
   @ApiResponse({ status: 200, description: 'Dependent deleted successfully' })
   @ApiResponse({ status: 404, description: 'Dependent not found' })
   remove(@Req() req: RequestWithUser, @Param('id') id: string) {
