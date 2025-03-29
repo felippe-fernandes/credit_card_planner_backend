@@ -13,8 +13,8 @@ import { RequestWithUser } from 'src/auth/interfaces/auth.interface';
 import { CategoriesService } from './categories.service';
 import { CreateCategoryDto, UpdateCategoryDto } from './dto/categories.dto';
 
-@ApiTags('Categories')
 @Controller('categories')
+@ApiTags('Categories')
 @ApiBearerAuth()
 @UseGuards(AuthGuard)
 export class CategoriesController {
@@ -25,8 +25,8 @@ export class CategoriesController {
     summary: 'Get all categories',
     description: 'Retrieve all categories for the authenticated user.',
   })
-  @ApiQuery({ name: 'id', required: false, description: 'Filter by category ID' })
-  @ApiQuery({ name: 'name', required: false, description: 'Filter by category name' })
+  @ApiQuery({ name: 'id', required: false, description: 'Filter by category ID', example: '123' })
+  @ApiQuery({ name: 'name', required: false, description: 'Filter by category name', example: 'Groceries' })
   async findAll(@Req() req: RequestWithUser, @Query('id') id?: string, @Query('name') name?: string) {
     const userId = req.user.id;
     const filters = { id, name };
@@ -35,8 +35,8 @@ export class CategoriesController {
 
   @Get('/search')
   @ApiOperation({ summary: 'Find a category', description: 'Find a specific category by ID or name.' })
-  @ApiQuery({ name: 'id', required: false, description: 'Category ID' })
-  @ApiQuery({ name: 'name', required: false, description: 'Category name' })
+  @ApiQuery({ name: 'id', required: false, description: 'Category ID', example: '123' })
+  @ApiQuery({ name: 'name', required: false, description: 'Category name', example: 'Groceries' })
   async findOne(@Req() req: RequestWithUser, @Query('id') id?: string, @Query('name') name?: string) {
     const userId = req.user.id;
     const filters = { id, name };
@@ -62,7 +62,7 @@ export class CategoriesController {
 
   @Patch(':id')
   @ApiOperation({ summary: 'Update a category' })
-  @ApiParam({ name: 'id', description: 'Category ID' })
+  @ApiParam({ name: 'id', description: 'Category ID', example: '123' })
   @ApiBody({
     schema: {
       type: 'object',
@@ -84,7 +84,7 @@ export class CategoriesController {
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a category' })
-  @ApiParam({ name: 'id', description: 'Category ID' })
+  @ApiParam({ name: 'id', description: 'Category ID', example: '123' })
   async remove(@Req() req: RequestWithUser, @Param('id') id: string) {
     return this.categoryService.remove(id, req.user.id);
   }
