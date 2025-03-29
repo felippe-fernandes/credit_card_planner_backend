@@ -23,10 +23,14 @@ export class TransactionsController {
     @Query('purchaseCategory') purchaseCategory?: string,
     @Query('purchaseDate') purchaseDate?: string,
     @Query('installments') installments?: string,
+    @Query('installmentDates') installmentDates?: string | string[],
   ) {
     const userId = req.user.id;
-
     const installmentsNumber = installments ? parseInt(installments, 10) : undefined;
+
+    const parsedInstallmentsMonth = Array.isArray(installmentDates)
+      ? installmentDates
+      : installmentDates?.split(',').map((v) => v.trim());
 
     const filters: FindAllTransactionsDto = {
       card,
@@ -35,6 +39,7 @@ export class TransactionsController {
       purchaseCategory,
       purchaseDate,
       installments: installmentsNumber,
+      installmentDates: parsedInstallmentsMonth,
     };
 
     return this.transactionsService.findAll(userId, filters);

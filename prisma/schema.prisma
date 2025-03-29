@@ -66,9 +66,10 @@ model Transaction {
   purchaseCategory  String
   description       String?
   amount            Decimal
-  date              DateTime
+  purchaseDate      DateTime
   installments      Int       @default(1)
   installmentsValue Decimal[]
+  installmentDates  String[]
 
   createdAt DateTime  @default(now())
   editedAt  DateTime? @default(now()) @updatedAt @db.Timestamp(6)
@@ -76,10 +77,6 @@ model Transaction {
   card      Card       @relation(fields: [cardId], references: [id], onDelete: Cascade)
   dependent Dependent? @relation(fields: [dependentId], references: [id])
   user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([cardId, date], map: "idx_transaction_card_date")
-  @@index([dependentId], map: "idx_transaction_dependent")
-  @@index([userId, date], map: "idx_transaction_user_date")
 }
 
 model Category {

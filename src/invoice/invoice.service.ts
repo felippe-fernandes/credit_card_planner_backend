@@ -12,8 +12,8 @@ export class InvoiceService {
     const invoicesMap = new Map<string, { totalAmount: number }>();
 
     transactions.forEach((transaction) => {
-      const { date, installments, installmentsValue, amount, cardId, userId } = transaction;
-      const transactionDate = new Date(date);
+      const { purchaseDate, installments, installmentsValue, amount, cardId, userId } = transaction;
+      const transactionDate = new Date(purchaseDate);
 
       for (let i = 0; i < installments; i++) {
         const month = transactionDate.getMonth() + 1;
@@ -98,15 +98,15 @@ export class InvoiceService {
       if (invoices.length === 0) {
         throw new NotFoundException({
           statusCode: HttpStatus.NOT_FOUND,
-          message: 'No invoices found for this user',
           count: 0,
+          message: 'No invoices found for this user',
           data: null,
         });
       }
       return {
         statusCode: HttpStatus.OK,
-        message: 'Invoices retrieved successfully',
         count: invoicesCount,
+        message: 'Invoices retrieved successfully',
         result: invoices,
       };
     } catch {

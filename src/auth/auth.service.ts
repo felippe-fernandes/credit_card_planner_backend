@@ -59,10 +59,10 @@ export class AuthService {
       });
 
       return {
-        message: `${role} successfully created`,
-        count: 1,
-        result: newUser,
         statusCode: HttpStatus.CREATED,
+        count: 1,
+        message: `${role} successfully created`,
+        result: newUser,
       };
     } catch {
       await supabase.auth.admin.deleteUser(user.id);

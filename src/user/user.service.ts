@@ -18,15 +18,15 @@ export class UserService {
       if (users.length === 0) {
         throw new NotFoundException({
           statusCode: HttpStatus.NOT_FOUND,
-          message: 'No users found',
           count: 0,
+          message: 'No users found',
           data: null,
         });
       }
       return {
         statusCode: HttpStatus.OK,
-        message: 'Users retrieved successfully',
         count: usersCount,
+        message: 'Users retrieved successfully',
         result: users,
       };
     } catch {
@@ -45,15 +45,15 @@ export class UserService {
       if (!user) {
         throw new NotFoundException({
           statusCode: HttpStatus.NOT_FOUND,
-          message: `User with id ${id} not found`,
           count: 0,
+          message: `User with id ${id} not found`,
           data: null,
         });
       }
       return {
         statusCode: HttpStatus.OK,
-        message: 'User retrieved successfully',
         count: 1,
+        message: 'User retrieved successfully',
         result: user,
       };
     } catch {
@@ -72,8 +72,8 @@ export class UserService {
       });
       return {
         statusCode: HttpStatus.OK,
-        message: 'User updated successfully',
         count: 1,
+        message: 'User updated successfully',
         result: updatedUser,
       };
     } catch (error: unknown) {
@@ -101,8 +101,8 @@ export class UserService {
       });
       return {
         statusCode: HttpStatus.OK,
-        message: 'User role updated successfully',
         count: 1,
+        message: 'User role updated successfully',
         result: updatedUser,
       };
     } catch (error: unknown) {
