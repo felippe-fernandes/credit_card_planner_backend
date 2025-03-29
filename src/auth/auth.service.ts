@@ -1,4 +1,10 @@
-import { BadRequestException, HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  HttpException,
+  HttpStatus,
+  Injectable,
+} from '@nestjs/common';
 import { Role, User } from '@prisma/client';
 import { Session } from '@supabase/supabase-js';
 import { Response } from 'express';
@@ -125,5 +131,32 @@ export class AuthService {
       statusCode: HttpStatus.OK,
       message: 'Logout successful',
     };
+  }
+
+  async deleteUser(userId: string) {
+    if (!userId) {
+      throw new BadRequestException({
+        statusCode: HttpStatus.BAD_REQUEST,
+        message: 'User ID is required.',
+      });
+    }
+
+    const { error } = await supabase.auth.admin.deleteUser(userId);
+
+    if (error) {
+      if (error.message.includes('User not allowed')) {
+        throw new ForbiddenException({
+          statusCode: HttpStatus.FORBIDDEN,
+          message: 'You are not allowed to delete this user.',
+        });
+      }
+
+      throw new BadRequestException({
+        statusCode: HttpStatus.BAD_REQUEST,
+        message: `Error deleting user: ${error.message}`,
+      });
+    }
+
+    return { message: 'User successfully deleted.' };
   }
 }

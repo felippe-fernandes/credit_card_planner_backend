@@ -1,5 +1,18 @@
-import { Body, Controller, Delete, Get, Patch, Put, Req, UseGuards } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpStatus,
+  Param,
+  Patch,
+  Put,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { AuthGuard } from 'src/auth/auth.guard';
+import { AuthService } from 'src/auth/auth.service';
 import { RequestWithUser } from 'src/auth/interfaces/auth.interface';
 import { Roles } from 'src/auth/roles/roles.decorator';
 import { RolesGuard } from 'src/auth/roles/roles.guard';
@@ -9,7 +22,10 @@ import { UserService } from './user.service';
 @Controller('users')
 @UseGuards(AuthGuard, RolesGuard)
 export class UserController {
-  constructor(private readonly userService: UserService) {}
+  constructor(
+    private readonly userService: UserService,
+    private readonly supabaseService: AuthService,
+  ) {}
 
   @Get()
   @Roles('SUPER_ADMIN')
@@ -36,5 +52,23 @@ export class UserController {
   @Delete('me')
   remove(@Req() req: RequestWithUser) {
     return this.userService.remove(req.user.id);
+  }
+
+  @Delete('delete/:id')
+  @Roles('SUPER_ADMIN')
+  async deleteUser(@Param('id') userId: string) {
+    console.log('Deleting user with ID:', userId);
+    try {
+      await this.supabaseService.deleteUser(userId);
+      await this.userService.remove(userId);
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      throw new BadRequestException({
+        statusCode: HttpStatus.BAD_REQUEST,
+        message: 'Error deleting user',
+      });
+    }
+
+    return { message: 'User deleted with Success' };
   }
 }
