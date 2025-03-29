@@ -36,10 +36,12 @@ export class CreateTransactionDto {
   @ArrayMinSize(1)
   @ValidateIf((obj: Transaction) => obj.installments > 1)
   @IsDecimal({}, { each: true })
-  installmentValues: number[];
+  @IsOptional()
+  installmentValues?: number[];
 
   @IsDateString()
-  date: string;
+  @IsOptional()
+  purchaseDate?: string;
 
   @IsString()
   @IsOptional()
@@ -77,7 +79,7 @@ export class UpdateTransactionDto {
 
   @IsDateString()
   @IsOptional()
-  date?: string;
+  purchaseDate?: string;
 
   @IsString()
   @IsOptional()

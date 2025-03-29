@@ -12,8 +12,8 @@ export class InvoiceService {
     const invoicesMap = new Map<string, { totalAmount: number }>();
 
     transactions.forEach((transaction) => {
-      const { date, installments, installmentsValue, amount, cardId, userId } = transaction;
-      const transactionDate = new Date(date);
+      const { purchaseDate, installments, installmentsValue, amount, cardId, userId } = transaction;
+      const transactionDate = new Date(purchaseDate);
 
       for (let i = 0; i < installments; i++) {
         const month = transactionDate.getMonth() + 1;

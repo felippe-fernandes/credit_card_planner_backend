@@ -4,6 +4,7 @@ import { Decimal } from '@prisma/client/runtime/library';
 import { PostgrestError } from '@supabase/supabase-js';
 import { PrismaService } from 'prisma/prisma.service';
 import { IReceivedData } from 'src/interceptors/response.interceptor';
+import { calculateInstallmentDates } from 'src/utils/transactions';
 import {
   CreateTransactionDto,
   FindAllTransactionsDto,
@@ -66,6 +67,18 @@ export class TransactionsService {
             dependent: restOfTheFilters.dependent ? { id: restOfTheFilters.dependent } : undefined,
           },
         },
+        include: {
+          card: {
+            select: {
+              name: true,
+            },
+          },
+          dependent: {
+            select: {
+              name: true,
+            },
+          },
+        },
       });
 
       if (transactions.length === 0) {
@@ -115,6 +128,18 @@ export class TransactionsService {
             installments: filters.installments ? { equals: parseInt(filters.installments) } : undefined,
           },
         },
+        include: {
+          card: {
+            select: {
+              name: true,
+            },
+          },
+          dependent: {
+            select: {
+              name: true,
+            },
+          },
+        },
       });
 
       if (!transaction) {
@@ -147,33 +172,61 @@ export class TransactionsService {
     userId: string,
     createTransactionDto: CreateTransactionDto,
   ): Promise<IReceivedData<Transaction>> {
-    const { amount, installments, installmentValues, ...rest } = createTransactionDto;
+    const { amount, installments, installmentValues, cardId, dependentId, purchaseDate, ...rest } =
+      createTransactionDto;
 
-    if (installmentValues.length !== installments) {
-      throw new BadRequestException(
-        `Número de parcelas (${installments}) não bate com os valores informados (${installmentValues.length})`,
-      );
-    }
+    const amountDecimal = new Decimal(amount);
 
-    const totalInstallments = installmentValues.reduce(
-      (sum, value) => sum.plus(new Decimal(value)),
-      new Decimal(0),
+    const transactionDate = purchaseDate ? new Date(purchaseDate) : new Date();
+
+    const calculatedInstallments: Decimal[] = Array(installments)
+      .fill(amountDecimal.div(installments))
+      .map((value, index, array) => {
+        if (index === array.length - 1) {
+          const sumPreviousInstallments = Decimal.sum(...array.slice(0, -1));
+          return amountDecimal.minus(sumPreviousInstallments);
+        }
+        return value as Decimal;
+      });
+
+    const finalInstallmentValues: Decimal[] = (installmentValues ?? calculatedInstallments.map((v) => v)).map(
+      (value) => new Decimal(value),
     );
 
-    if (!totalInstallments.equals(new Decimal(amount))) {
+    if (finalInstallmentValues.length !== installments) {
       throw new BadRequestException(
-        `A soma das parcelas (${totalInstallments.toString()}) deve ser igual ao valor total da compra (${amount})`,
+        `Number of installments (${installments}) does not match the provided values (${finalInstallmentValues.length})`,
       );
     }
+
+    const totalInstallments = finalInstallmentValues.reduce((sum, value) => sum.plus(value), new Decimal(0));
+
+    if (!totalInstallments.equals(amountDecimal)) {
+      throw new BadRequestException(
+        `The sum of installments (${totalInstallments.toString()}) must be equal to the total purchase amount (${amountDecimal.toString()})`,
+      );
+    }
+
+    const card = await this.prisma.card.findUnique({ where: { id: cardId } });
+
+    if (!card) {
+      throw new BadRequestException(`Card not found`);
+    }
+
+    const installmentDates = calculateInstallmentDates(transactionDate, card.payDay, installments);
 
     try {
       const transaction = await this.prisma.transaction.create({
         data: {
           ...rest,
           userId,
-          amount: new Decimal(amount),
+          cardId,
+          dependentId: dependentId ?? userId,
+          amount: amountDecimal,
           installments,
-          date: new Date(rest.date),
+          purchaseDate: transactionDate,
+          installmentDates,
+          installmentsValue: finalInstallmentValues.map((v) => v.toString()),
         },
       });
 
@@ -188,7 +241,7 @@ export class TransactionsService {
       if ((error as PostgrestError).code === 'P2002') {
         throw new BadRequestException({
           statusCode: HttpStatus.BAD_REQUEST,
-          message: 'Error transaction card: Duplicate value found',
+          message: 'Error processing transaction: Duplicate value found',
         });
       } else {
         throw new BadRequestException({
