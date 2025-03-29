@@ -50,8 +50,8 @@ export class TransactionsService {
           userId,
           AND: {
             ...restOfTheFilters,
-            installmentDates: installmentDates ? { hasSome: installmentDates } : undefined,
             purchaseName: purchaseName ? { contains: purchaseName, mode: 'insensitive' } : undefined,
+            installmentDates: installmentDates ? { hasSome: installmentDates } : undefined,
             card: restOfTheFilters.card ? { id: restOfTheFilters.card } : undefined,
             dependent: restOfTheFilters.dependent ? { id: restOfTheFilters.dependent } : undefined,
           },
@@ -64,8 +64,8 @@ export class TransactionsService {
           AND: {
             ...restOfTheFilters,
             purchaseName: purchaseName ? { contains: purchaseName, mode: 'insensitive' } : undefined,
-            installmentDates: installmentDates ? { hasSome: installmentDates } : undefined,
             card: restOfTheFilters.card ? { id: restOfTheFilters.card } : undefined,
+            installmentDates: installmentDates ? { hasSome: installmentDates } : undefined,
             dependent: restOfTheFilters.dependent ? { id: restOfTheFilters.dependent } : undefined,
           },
         },

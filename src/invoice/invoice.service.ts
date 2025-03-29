@@ -12,7 +12,7 @@ export class InvoiceService {
     const invoicesMap = new Map<string, { totalAmount: number }>();
 
     transactions.forEach((transaction) => {
-      const { purchaseDate, installments, installmentsValue, amount, cardId, userId } = transaction;
+      const { installments, installmentsValue, amount, cardId, userId, purchaseDate } = transaction;
       const transactionDate = new Date(purchaseDate);
 
       for (let i = 0; i < installments; i++) {
