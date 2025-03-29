@@ -7,7 +7,7 @@ import { RequestWithUser } from './interfaces/auth.interface';
 import { Roles } from './roles/roles.decorator';
 import { RolesGuard } from './roles/roles.guard';
 
-@ApiTags('Auth')
+@ApiTags('Authentication')
 @Controller('auth')
 @UseGuards(RolesGuard)
 export class AuthController {
@@ -58,8 +58,8 @@ export class AuthController {
   @ApiResponse({ status: 400, description: 'Error signing out.' })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
   @ApiResponse({ status: 500, description: 'Error retrieving user from Supabase.' })
-  async signOut(@Req() req: RequestWithUser) {
+  async signOut(@Req() req: RequestWithUser, @Res({ passthrough: true }) response: Response) {
     const userId = req.user.id;
-    return await this.authService.signOut(userId);
+    return await this.authService.signOut(userId, response);
   }
 }
