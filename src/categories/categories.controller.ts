@@ -1,15 +1,32 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiOperation,
+  ApiParam,
+  ApiQuery,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { AuthGuard } from 'src/auth/auth.guard';
 import { RequestWithUser } from 'src/auth/interfaces/auth.interface';
 import { CategoriesService } from './categories.service';
 import { CreateCategoryDto, UpdateCategoryDto } from './dto/categories.dto';
 
+@ApiTags('Categories')
 @Controller('categories')
+@ApiBearerAuth()
 @UseGuards(AuthGuard)
 export class CategoriesController {
   constructor(private categoryService: CategoriesService) {}
 
   @Get()
+  @ApiOperation({
+    summary: 'Get all categories',
+    description: 'Retrieve all categories for the authenticated user.',
+  })
+  @ApiQuery({ name: 'id', required: false, description: 'Filter by category ID' })
+  @ApiQuery({ name: 'name', required: false, description: 'Filter by category name' })
   async findAll(@Req() req: RequestWithUser, @Query('id') id?: string, @Query('name') name?: string) {
     const userId = req.user.id;
     const filters = { id, name };
@@ -17,6 +34,9 @@ export class CategoriesController {
   }
 
   @Get('/search')
+  @ApiOperation({ summary: 'Find a category', description: 'Find a specific category by ID or name.' })
+  @ApiQuery({ name: 'id', required: false, description: 'Category ID' })
+  @ApiQuery({ name: 'name', required: false, description: 'Category name' })
   async findOne(@Req() req: RequestWithUser, @Query('id') id?: string, @Query('name') name?: string) {
     const userId = req.user.id;
     const filters = { id, name };
@@ -24,11 +44,35 @@ export class CategoriesController {
   }
 
   @Post()
+  @ApiOperation({ summary: 'Create a new category' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', example: 'Groceries' },
+        icon: { type: 'string', example: 'shopping-cart' },
+        color: { type: 'string', example: '#FF5733' },
+      },
+    },
+  })
+  @ApiResponse({ status: 201, description: 'Category created successfully' })
   async create(@Req() req: RequestWithUser, @Body() data: CreateCategoryDto) {
     return this.categoryService.create(req.user.id, data);
   }
 
   @Patch(':id')
+  @ApiOperation({ summary: 'Update a category' })
+  @ApiParam({ name: 'id', description: 'Category ID' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', example: 'Groceries' },
+        icon: { type: 'string', example: 'shopping-cart' },
+        color: { type: 'string', example: '#FF5733' },
+      },
+    },
+  })
   async update(
     @Req() req: RequestWithUser,
     @Param('id') categoryId: string,
@@ -39,11 +83,14 @@ export class CategoriesController {
   }
 
   @Delete(':id')
+  @ApiOperation({ summary: 'Delete a category' })
+  @ApiParam({ name: 'id', description: 'Category ID' })
   async remove(@Req() req: RequestWithUser, @Param('id') id: string) {
     return this.categoryService.remove(id, req.user.id);
   }
 
   @Post('add-defaults')
+  @ApiOperation({ summary: 'Add default categories for the user' })
   async addDefaults(@Req() req: RequestWithUser) {
     return this.categoryService.addDefaultCategories(req.user.id);
   }

@@ -43,7 +43,7 @@ export class CategoriesService {
     const { name, ...restOfTheFilters } = filters;
 
     try {
-      const categoriesCount = await this.prisma.card.count({
+      const categoriesCount = await this.prisma.category.count({
         where: {
           userId,
           AND: {
