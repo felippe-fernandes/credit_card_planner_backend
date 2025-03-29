@@ -114,7 +114,7 @@ export class AuthService {
     };
   }
 
-  async signOut(userId: User['id']): Promise<IReceivedData<{ userId: User['id'] }>> {
+  async signOut(userId: User['id'], res: Response): Promise<IReceivedData<{ userId: User['id'] }>> {
     const { error } = await supabase.auth.signOut();
 
     if (error) {
@@ -123,6 +123,8 @@ export class AuthService {
         message: `Error logging out: ${error.message}`,
       });
     }
+
+    res.clearCookie('auth_token');
 
     return {
       result: {

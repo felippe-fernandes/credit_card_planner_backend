@@ -43,7 +43,7 @@ export class CategoriesService {
     const { name, ...restOfTheFilters } = filters;
 
     try {
-      const categoriesCount = await this.prisma.card.count({
+      const categoriesCount = await this.prisma.category.count({
         where: {
           userId,
           AND: {
@@ -92,10 +92,10 @@ export class CategoriesService {
   }
 
   async findOne(userId: string, filters: FindOneCategoryDto): Promise<IReceivedData<Category>> {
-    if (!filters.id && !filters.name) {
+    if (!filters.name) {
       throw new BadRequestException({
         statusCode: HttpStatus.BAD_REQUEST,
-        message: 'Please provide an id or name to search for',
+        message: 'Please provide an name to search for',
       });
     }
 
@@ -104,7 +104,6 @@ export class CategoriesService {
         where: {
           userId,
           AND: {
-            id: { equals: filters.id },
             name: { contains: filters.name, mode: 'insensitive' },
           },
         },
@@ -148,7 +147,7 @@ export class CategoriesService {
       }
 
       const existingCategory = await this.prisma.category.findFirst({
-        where: { name: CreateCategoryDto.name },
+        where: { userId, AND: { name: { contains: data.name, mode: 'insensitive' } } },
       });
 
       if (existingCategory) {
@@ -181,20 +180,20 @@ export class CategoriesService {
 
   async update(
     userId: string,
-    categoryId: string,
+    categoryName: string,
     updateCategoryDto: UpdateCategoryDto,
   ): Promise<IReceivedData<Category>> {
     try {
-      const existingCard = await this.prisma.category.findUnique({
-        where: { id: categoryId },
+      const existingCard = await this.prisma.category.findFirst({
+        where: { userId, AND: { name: { contains: categoryName, mode: 'insensitive' } } },
       });
 
       if (!existingCard) {
-        throw new NotFoundException(`Category with id ${categoryId} not found`);
+        throw new NotFoundException(`Category with id ${categoryName} not found`);
       }
 
       const updatedCategory = await this.prisma.category.update({
-        where: { id: categoryId },
+        where: { name_userId: { name: categoryName, userId } },
         data: {
           ...updateCategoryDto,
           userId,
@@ -221,18 +220,20 @@ export class CategoriesService {
     }
   }
 
-  async remove(categoryId: string, userId: string): Promise<IReceivedData<{ categoryId: Category['id'] }>> {
-    const existingCategory = await this.prisma.category.findUnique({ where: { id: categoryId } });
+  async remove(categoryName: string, userId: string): Promise<IReceivedData<{ category: Category['name'] }>> {
+    const existingCategory = await this.prisma.category.findFirst({
+      where: { userId, AND: { name: { contains: categoryName, mode: 'insensitive' } } },
+    });
 
     if (!existingCategory || existingCategory.userId !== userId) {
       throw new NotFoundException({
         statusCode: HttpStatus.NOT_FOUND,
-        message: `Catbom diabomegory with id ${categoryId} not found`,
+        message: `Category with id ${categoryName} not found`,
       });
     }
 
-    await this.prisma.category.delete({ where: { id: categoryId } });
+    await this.prisma.category.delete({ where: { name_userId: { name: categoryName, userId } } });
 
-    return { result: { categoryId }, statusCode: 200, message: 'Category deleted successfully' };
+    return { result: { category: categoryName }, statusCode: 200, message: 'Category deleted successfully' };
   }
 }

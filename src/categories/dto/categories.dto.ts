@@ -42,9 +42,5 @@ export class FindAllCategoryDto {
 export class FindOneCategoryDto {
   @IsOptional()
   @IsString()
-  id?: string;
-
-  @IsOptional()
-  @IsString()
   name?: string;
 }

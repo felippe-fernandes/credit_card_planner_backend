@@ -62,10 +62,10 @@ export class CardsService {
   }
 
   async findOne(userId: string, filters: FindOneCardDto): Promise<IReceivedData<Card>> {
-    if (!filters.id && !filters.name) {
+    if ((!filters.id && !filters.name) || !filters.bank) {
       throw new BadRequestException({
         statusCode: HttpStatus.BAD_REQUEST,
-        message: 'Please provide an id or name to search for',
+        message: 'Please provide an id, bank or name to search for',
       });
     }
 
@@ -76,6 +76,7 @@ export class CardsService {
           AND: {
             id: { equals: filters.id },
             name: { contains: filters.name, mode: 'insensitive' },
+            bank: { contains: filters.bank, mode: 'insensitive' },
           },
         },
       });
@@ -207,7 +208,7 @@ export class CardsService {
       });
     }
 
-    await this.prisma.category.delete({ where: { id: cardId } });
+    await this.prisma.card.delete({ where: { id: cardId } });
 
     return { result: { cardId }, statusCode: HttpStatus.OK, message: 'Card deleted successfully' };
   }
