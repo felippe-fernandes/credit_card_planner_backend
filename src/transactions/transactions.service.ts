@@ -108,10 +108,10 @@ export class TransactionsService {
   }
 
   async findOne(userId: string, filters: FindOneTransactionDto): Promise<IReceivedData<Transaction>> {
-    if (!filters.id && !filters.purchaseName) {
+    if (Object.values(filters).every((value) => value === undefined)) {
       throw new BadRequestException({
         statusCode: HttpStatus.BAD_REQUEST,
-        message: 'Please provide an id or purchaseName to search for',
+        message: 'Please provide at least one parameter to search for a transaction',
       });
     }
 
