@@ -42,7 +42,7 @@ export class TransactionsService {
   }
 
   async findAll(userId: string, filters: FindAllTransactionsDto): Promise<IReceivedData<Transaction[]>> {
-    const { purchaseName, ...restOfTheFilters } = filters;
+    const { purchaseName, installmentDates, ...restOfTheFilters } = filters;
 
     try {
       const transactionCount = await this.prisma.transaction.count({
@@ -50,6 +50,7 @@ export class TransactionsService {
           userId,
           AND: {
             ...restOfTheFilters,
+            installmentDates: installmentDates ? { hasSome: installmentDates } : undefined,
             purchaseName: purchaseName ? { contains: purchaseName, mode: 'insensitive' } : undefined,
             card: restOfTheFilters.card ? { id: restOfTheFilters.card } : undefined,
             dependent: restOfTheFilters.dependent ? { id: restOfTheFilters.dependent } : undefined,
@@ -63,6 +64,7 @@ export class TransactionsService {
           AND: {
             ...restOfTheFilters,
             purchaseName: purchaseName ? { contains: purchaseName, mode: 'insensitive' } : undefined,
+            installmentDates: installmentDates ? { hasSome: installmentDates } : undefined,
             card: restOfTheFilters.card ? { id: restOfTheFilters.card } : undefined,
             dependent: restOfTheFilters.dependent ? { id: restOfTheFilters.dependent } : undefined,
           },
@@ -84,19 +86,20 @@ export class TransactionsService {
       if (transactions.length === 0) {
         throw new NotFoundException({
           statusCode: HttpStatus.NOT_FOUND,
-          message: 'No transactions found for this user',
           count: 0,
+          message: 'No transactions found for this user',
           data: null,
         });
       }
 
       return {
         statusCode: HttpStatus.OK,
-        message: 'Transactions retrieved successfully',
         count: transactionCount,
+        message: 'Transactions retrieved successfully',
         result: transactions,
       };
-    } catch {
+    } catch (error) {
+      console.log('🚀 | error:', error);
       throw new BadRequestException({
         statusCode: HttpStatus.BAD_REQUEST,
         message: 'Failed to retrieve transactions',
@@ -145,16 +148,16 @@ export class TransactionsService {
       if (!transaction) {
         throw new NotFoundException({
           statusCode: HttpStatus.NOT_FOUND,
-          message: `Transaction not found for user with id ${userId}`,
           count: 0,
+          message: `Transaction not found for user with id ${userId}`,
           data: null,
         });
       }
 
       return {
         statusCode: HttpStatus.OK,
-        message: 'Transaction retrieved successfully',
         count: 1,
+        message: 'Transaction retrieved successfully',
         result: transaction,
       };
     } catch (error) {
@@ -277,8 +280,8 @@ export class TransactionsService {
 
       return {
         statusCode: HttpStatus.OK,
-        message: 'Transaction updated successfully',
         count: 1,
+        message: 'Transaction updated successfully',
         result: updatedTransaction,
       };
     } catch (error: unknown) {

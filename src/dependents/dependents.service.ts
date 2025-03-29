@@ -46,15 +46,15 @@ export class DependentsService {
       if (dependents.length === 0) {
         throw new NotFoundException({
           statusCode: HttpStatus.NOT_FOUND,
-          message: 'No dependents found for this user',
           count: 0,
+          message: 'No dependents found for this user',
           data: null,
         });
       }
       return {
         statusCode: HttpStatus.OK,
-        message: 'Dependents retrieved successfully',
         count: dependentsCount,
+        message: 'Dependents retrieved successfully',
         result: dependents,
       };
     } catch {
@@ -87,16 +87,16 @@ export class DependentsService {
       if (!dependent) {
         throw new NotFoundException({
           statusCode: HttpStatus.NOT_FOUND,
-          message: `Dependent not found for user with id ${userId}`,
           count: 0,
+          message: `Dependent not found for user with id ${userId}`,
           data: null,
         });
       }
 
       return {
         statusCode: HttpStatus.OK,
-        message: 'Dependent retrieved successfully',
         count: 1,
+        message: 'Dependent retrieved successfully',
         result: dependent,
       };
     } catch (error) {
@@ -143,8 +143,8 @@ export class DependentsService {
 
       return {
         statusCode: HttpStatus.CREATED,
-        message: 'Dependent created successfully',
         count: 1,
+        message: 'Dependent created successfully',
         result: dependent,
       };
     } catch (error) {
@@ -183,8 +183,8 @@ export class DependentsService {
 
       return {
         statusCode: 200,
-        message: 'Dependent updated successfully',
         count: 1,
+        message: 'Dependent updated successfully',
         result: updatedDependent,
       };
     } catch (error: unknown) {

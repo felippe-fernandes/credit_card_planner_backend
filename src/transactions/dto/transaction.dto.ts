@@ -1,6 +1,7 @@
 import { Transaction } from '@prisma/client';
 import {
   ArrayMinSize,
+  ArrayNotEmpty,
   IsArray,
   IsDateString,
   IsDecimal,
@@ -8,6 +9,7 @@ import {
   IsNumberString,
   IsOptional,
   IsString,
+  Matches,
   ValidateIf,
 } from 'class-validator';
 
@@ -110,6 +112,15 @@ export class FindAllTransactionsDto {
   @IsOptional()
   @IsDateString()
   purchaseDate?: string;
+
+  @IsOptional()
+  @IsArray()
+  @ArrayNotEmpty()
+  @Matches(/^(0[1-9]|1[0-2])\/\d{4}$/, {
+    each: true,
+    message: 'Each date in installmentsMonth must be in the format MM/YYYY',
+  })
+  installmentDates?: string[];
 }
 
 export class FindOneTransactionDto {

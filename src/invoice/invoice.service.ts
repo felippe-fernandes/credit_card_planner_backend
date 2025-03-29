@@ -98,15 +98,15 @@ export class InvoiceService {
       if (invoices.length === 0) {
         throw new NotFoundException({
           statusCode: HttpStatus.NOT_FOUND,
-          message: 'No invoices found for this user',
           count: 0,
+          message: 'No invoices found for this user',
           data: null,
         });
       }
       return {
         statusCode: HttpStatus.OK,
-        message: 'Invoices retrieved successfully',
         count: invoicesCount,
+        message: 'Invoices retrieved successfully',
         result: invoices,
       };
     } catch {
