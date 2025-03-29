@@ -7,13 +7,13 @@ import { RequestWithUser } from './interfaces/auth.interface';
 import { Roles } from './roles/roles.decorator';
 import { RolesGuard } from './roles/roles.guard';
 
-@ApiTags('Authentication')
 @Controller('auth')
+@ApiTags('Authentication')
 @UseGuards(RolesGuard)
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  @Post('signup/user')
+  @Post('signup')
   @ApiOperation({ summary: 'Create a new user' })
   @ApiResponse({ status: 201, description: 'User created successfully.' })
   @ApiResponse({ status: 400, description: 'Error signing up.' })

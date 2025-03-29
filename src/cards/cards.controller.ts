@@ -1,13 +1,21 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiBody, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiOperation,
+  ApiParam,
+  ApiQuery,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { AuthGuard } from 'src/auth/auth.guard';
 import { RequestWithUser } from 'src/auth/interfaces/auth.interface';
 import { CardsService } from './cards.service';
-import { CreateCardDto, UpdateCardDto } from './dto/cards.dto';
+import { CreateCardDto, FindOneCardDto, UpdateCardDto } from './dto/cards.dto';
 
+@Controller('cards')
 @ApiTags('Cards')
 @ApiBearerAuth()
-@Controller('cards')
 @UseGuards(AuthGuard)
 export class CardsController {
   constructor(private cardService: CardsService) {}
@@ -16,11 +24,11 @@ export class CardsController {
   @ApiOperation({ summary: 'Retrieve all cards for the authenticated user' })
   @ApiResponse({ status: 200, description: 'Cards retrieved successfully' })
   @ApiResponse({ status: 400, description: 'Failed to retrieve cards' })
-  @ApiQuery({ name: 'flag', required: false, description: 'Card flag' })
-  @ApiQuery({ name: 'bank', required: false, description: 'Card bank' })
-  @ApiQuery({ name: 'dueDay', required: false, description: 'Card due day' })
-  @ApiQuery({ name: 'payDay', required: false, description: 'Card pay day' })
-  @ApiQuery({ name: 'name', required: false, description: 'Card name' })
+  @ApiQuery({ name: 'flag', required: false, description: 'Card flag', example: 'Visa' })
+  @ApiQuery({ name: 'bank', required: false, description: 'Bank name', example: 'Bank Name' })
+  @ApiQuery({ name: 'dueDay', required: false, description: 'Due day', example: '15' })
+  @ApiQuery({ name: 'payDay', required: false, description: 'Pay day', example: '30' })
+  @ApiQuery({ name: 'name', required: false, description: 'Card name', example: 'My Card' })
   async findAll(
     @Req() req: RequestWithUser,
     @Query('flag') flag?: string,
@@ -41,11 +49,17 @@ export class CardsController {
   @ApiResponse({ status: 200, description: 'Card retrieved successfully' })
   @ApiResponse({ status: 400, description: 'Please provide an id or name to search for' })
   @ApiResponse({ status: 404, description: 'Card not found' })
-  @ApiQuery({ name: 'id', required: false, description: 'Card ID' })
-  @ApiQuery({ name: 'name', required: false, description: 'Card name' })
-  async findOne(@Req() req: RequestWithUser, @Query('id') id?: string, @Query('name') name?: string) {
+  @ApiQuery({ name: 'id', required: false, description: 'Card ID', example: '12345' })
+  @ApiQuery({ name: 'name', required: false, description: 'Card name', example: 'My Card' })
+  @ApiQuery({ name: 'bank', required: false, description: 'Bank name', example: 'Bank Name' })
+  async findOne(
+    @Req() req: RequestWithUser,
+    @Query('id') id?: string,
+    @Query('name') name?: string,
+    @Query('bank') bank?: string,
+  ) {
     const userId = req.user.id;
-    const filters = { id, name };
+    const filters: FindOneCardDto = { id, name, bank };
     return this.cardService.findOne(userId, filters);
   }
 
@@ -76,7 +90,7 @@ export class CardsController {
   @ApiResponse({ status: 200, description: 'Card updated successfully' })
   @ApiResponse({ status: 400, description: 'Failed to update card' })
   @ApiResponse({ status: 404, description: 'Card not found' })
-  @ApiQuery({ name: 'id', required: true, description: 'Card ID' })
+  @ApiParam({ name: 'id', required: true, description: 'Card ID', example: '12345' })
   @ApiBody({
     schema: {
       type: 'object',
@@ -103,7 +117,7 @@ export class CardsController {
   @ApiOperation({ summary: 'Delete a card' })
   @ApiResponse({ status: 200, description: 'Card deleted successfully' })
   @ApiResponse({ status: 404, description: 'Card not found' })
-  @ApiQuery({ name: 'id', required: true, description: 'Card ID' })
+  @ApiParam({ name: 'id', required: true, description: 'Card ID', example: '12345' })
   async remove(@Req() req: RequestWithUser, @Param('id') cardId: string) {
     const userId = req.user.id;
     return this.cardService.remove(userId, cardId);

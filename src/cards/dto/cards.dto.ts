@@ -64,6 +64,10 @@ export class FindOneCardDto {
   @IsOptional()
   @IsString()
   name?: string;
+
+  @IsOptional()
+  @IsString()
+  bank?: string;
 }
 
 export class FindAllCardsDto {
