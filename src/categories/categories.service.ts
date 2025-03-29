@@ -72,15 +72,15 @@ export class CategoriesService {
       if (categories.length === 0) {
         throw new NotFoundException({
           statusCode: HttpStatus.NOT_FOUND,
-          message: 'No categories found for this user',
           count: 0,
+          message: 'No categories found for this user',
           data: null,
         });
       }
       return {
         statusCode: HttpStatus.OK,
-        message: 'Categories retrieved successfully',
         count: categoriesCount,
+        message: 'Categories retrieved successfully',
         result: categories,
       };
     } catch {
@@ -112,15 +112,15 @@ export class CategoriesService {
       if (!category) {
         throw new NotFoundException({
           statusCode: HttpStatus.NOT_FOUND,
-          message: `Category not found for user ${userId}`,
           count: 0,
+          message: `Category not found for user ${userId}`,
           data: null,
         });
       }
       return {
         statusCode: HttpStatus.OK,
-        message: 'Category retrieved successfully',
         count: 1,
+        message: 'Category retrieved successfully',
         result: category,
       };
     } catch (error) {
@@ -164,8 +164,8 @@ export class CategoriesService {
 
       return {
         statusCode: HttpStatus.CREATED,
-        message: 'Category created successfully',
         count: 1,
+        message: 'Category created successfully',
         result: category,
       };
     } catch (error) {
@@ -202,8 +202,8 @@ export class CategoriesService {
       });
       return {
         statusCode: HttpStatus.OK,
-        message: 'Card updated successfully',
         count: 1,
+        message: 'Card updated successfully',
         result: updatedCategory,
       };
     } catch (error: unknown) {

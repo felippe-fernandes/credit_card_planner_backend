@@ -4,6 +4,7 @@ import { Decimal } from '@prisma/client/runtime/library';
 import { PostgrestError } from '@supabase/supabase-js';
 import { PrismaService } from 'prisma/prisma.service';
 import { IReceivedData } from 'src/interceptors/response.interceptor';
+import { calculateInstallmentDates } from 'src/utils/transactions';
 import {
   CreateTransactionDto,
   FindAllTransactionsDto,
@@ -41,7 +42,7 @@ export class TransactionsService {
   }
 
   async findAll(userId: string, filters: FindAllTransactionsDto): Promise<IReceivedData<Transaction[]>> {
-    const { purchaseName, ...restOfTheFilters } = filters;
+    const { purchaseName, installmentDates, ...restOfTheFilters } = filters;
 
     try {
       const transactionCount = await this.prisma.transaction.count({
@@ -49,6 +50,7 @@ export class TransactionsService {
           userId,
           AND: {
             ...restOfTheFilters,
+            installmentDates: installmentDates ? { hasSome: installmentDates } : undefined,
             purchaseName: purchaseName ? { contains: purchaseName, mode: 'insensitive' } : undefined,
             card: restOfTheFilters.card ? { id: restOfTheFilters.card } : undefined,
             dependent: restOfTheFilters.dependent ? { id: restOfTheFilters.dependent } : undefined,
@@ -62,8 +64,21 @@ export class TransactionsService {
           AND: {
             ...restOfTheFilters,
             purchaseName: purchaseName ? { contains: purchaseName, mode: 'insensitive' } : undefined,
+            installmentDates: installmentDates ? { hasSome: installmentDates } : undefined,
             card: restOfTheFilters.card ? { id: restOfTheFilters.card } : undefined,
             dependent: restOfTheFilters.dependent ? { id: restOfTheFilters.dependent } : undefined,
+          },
+        },
+        include: {
+          card: {
+            select: {
+              name: true,
+            },
+          },
+          dependent: {
+            select: {
+              name: true,
+            },
           },
         },
       });
@@ -71,19 +86,20 @@ export class TransactionsService {
       if (transactions.length === 0) {
         throw new NotFoundException({
           statusCode: HttpStatus.NOT_FOUND,
-          message: 'No transactions found for this user',
           count: 0,
+          message: 'No transactions found for this user',
           data: null,
         });
       }
 
       return {
         statusCode: HttpStatus.OK,
-        message: 'Transactions retrieved successfully',
         count: transactionCount,
+        message: 'Transactions retrieved successfully',
         result: transactions,
       };
-    } catch {
+    } catch (error) {
+      console.log('🚀 | error:', error);
       throw new BadRequestException({
         statusCode: HttpStatus.BAD_REQUEST,
         message: 'Failed to retrieve transactions',
@@ -115,21 +131,33 @@ export class TransactionsService {
             installments: filters.installments ? { equals: parseInt(filters.installments) } : undefined,
           },
         },
+        include: {
+          card: {
+            select: {
+              name: true,
+            },
+          },
+          dependent: {
+            select: {
+              name: true,
+            },
+          },
+        },
       });
 
       if (!transaction) {
         throw new NotFoundException({
           statusCode: HttpStatus.NOT_FOUND,
-          message: `Transaction not found for user with id ${userId}`,
           count: 0,
+          message: `Transaction not found for user with id ${userId}`,
           data: null,
         });
       }
 
       return {
         statusCode: HttpStatus.OK,
-        message: 'Transaction retrieved successfully',
         count: 1,
+        message: 'Transaction retrieved successfully',
         result: transaction,
       };
     } catch (error) {
@@ -147,33 +175,61 @@ export class TransactionsService {
     userId: string,
     createTransactionDto: CreateTransactionDto,
   ): Promise<IReceivedData<Transaction>> {
-    const { amount, installments, installmentValues, ...rest } = createTransactionDto;
+    const { amount, installments, installmentValues, cardId, dependentId, purchaseDate, ...rest } =
+      createTransactionDto;
 
-    if (installmentValues.length !== installments) {
-      throw new BadRequestException(
-        `Número de parcelas (${installments}) não bate com os valores informados (${installmentValues.length})`,
-      );
-    }
+    const amountDecimal = new Decimal(amount);
 
-    const totalInstallments = installmentValues.reduce(
-      (sum, value) => sum.plus(new Decimal(value)),
-      new Decimal(0),
+    const transactionDate = purchaseDate ? new Date(purchaseDate) : new Date();
+
+    const calculatedInstallments: Decimal[] = Array(installments)
+      .fill(amountDecimal.div(installments))
+      .map((value, index, array) => {
+        if (index === array.length - 1) {
+          const sumPreviousInstallments = Decimal.sum(...array.slice(0, -1));
+          return amountDecimal.minus(sumPreviousInstallments);
+        }
+        return value as Decimal;
+      });
+
+    const finalInstallmentValues: Decimal[] = (installmentValues ?? calculatedInstallments.map((v) => v)).map(
+      (value) => new Decimal(value),
     );
 
-    if (!totalInstallments.equals(new Decimal(amount))) {
+    if (finalInstallmentValues.length !== installments) {
       throw new BadRequestException(
-        `A soma das parcelas (${totalInstallments.toString()}) deve ser igual ao valor total da compra (${amount})`,
+        `Number of installments (${installments}) does not match the provided values (${finalInstallmentValues.length})`,
       );
     }
+
+    const totalInstallments = finalInstallmentValues.reduce((sum, value) => sum.plus(value), new Decimal(0));
+
+    if (!totalInstallments.equals(amountDecimal)) {
+      throw new BadRequestException(
+        `The sum of installments (${totalInstallments.toString()}) must be equal to the total purchase amount (${amountDecimal.toString()})`,
+      );
+    }
+
+    const card = await this.prisma.card.findUnique({ where: { id: cardId } });
+
+    if (!card) {
+      throw new BadRequestException(`Card not found`);
+    }
+
+    const installmentDates = calculateInstallmentDates(transactionDate, card.payDay, installments);
 
     try {
       const transaction = await this.prisma.transaction.create({
         data: {
           ...rest,
           userId,
-          amount: new Decimal(amount),
+          cardId,
+          dependentId: dependentId ?? userId,
+          amount: amountDecimal,
           installments,
-          date: new Date(rest.date),
+          purchaseDate: transactionDate,
+          installmentDates,
+          installmentsValue: finalInstallmentValues.map((v) => v.toString()),
         },
       });
 
@@ -188,7 +244,7 @@ export class TransactionsService {
       if ((error as PostgrestError).code === 'P2002') {
         throw new BadRequestException({
           statusCode: HttpStatus.BAD_REQUEST,
-          message: 'Error transaction card: Duplicate value found',
+          message: 'Error processing transaction: Duplicate value found',
         });
       } else {
         throw new BadRequestException({
@@ -224,8 +280,8 @@ export class TransactionsService {
 
       return {
         statusCode: HttpStatus.OK,
-        message: 'Transaction updated successfully',
         count: 1,
+        message: 'Transaction updated successfully',
         result: updatedTransaction,
       };
     } catch (error: unknown) {

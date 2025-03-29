@@ -18,6 +18,7 @@ export class ResponseInterceptor<T extends IReceivedData<T>> implements NestInte
           success: true,
           data: data.result,
           message: data.message,
+          statusCode: data.statusCode,
         };
 
         if (data.count !== undefined) {

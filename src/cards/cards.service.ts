@@ -42,15 +42,15 @@ export class CardsService {
       if (cards.length === 0) {
         throw new NotFoundException({
           statusCode: HttpStatus.NOT_FOUND,
-          message: 'No cards found for this user',
           count: 0,
+          message: 'No cards found for this user',
           data: null,
         });
       }
       return {
         statusCode: HttpStatus.OK,
-        message: 'Cards retrieved successfully',
         count: cardsCount,
+        message: 'Cards retrieved successfully',
         result: cards,
       };
     } catch {
@@ -83,16 +83,16 @@ export class CardsService {
       if (!card) {
         throw new NotFoundException({
           statusCode: HttpStatus.NOT_FOUND,
-          message: `Card not found for user with id ${userId}`,
           count: 0,
+          message: `Card not found for user with id ${userId}`,
           data: null,
         });
       }
 
       return {
         statusCode: HttpStatus.OK,
-        message: 'Card retrieved successfully',
         count: 1,
+        message: 'Card retrieved successfully',
         result: card,
       };
     } catch (error) {
@@ -139,8 +139,8 @@ export class CardsService {
 
       return {
         statusCode: HttpStatus.CREATED,
-        message: 'Card created successfully',
         count: 1,
+        message: 'Card created successfully',
         result: card,
       };
     } catch (error: unknown) {
@@ -178,8 +178,8 @@ export class CardsService {
 
       return {
         statusCode: HttpStatus.OK,
-        message: 'Card updated successfully',
         count: 1,
+        message: 'Card updated successfully',
         result: updatedCard,
       };
     } catch (error: unknown) {
