@@ -348,6 +348,7 @@ export class TransactionsService {
       result: { transactionId },
       statusCode: HttpStatus.OK,
       message: 'Transaction deleted successfully',
+      count: 1,
     };
   }
 }
