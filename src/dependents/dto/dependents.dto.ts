@@ -86,7 +86,7 @@ export class ResultFindOneDependentDto extends ResponseWithDataDto {
   result: Dependent;
 
   @ApiProperty({
-    example: 3,
+    example: 1,
   })
   count: number;
 }
