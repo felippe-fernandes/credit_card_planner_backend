@@ -79,6 +79,8 @@ model Transaction {
   card      Card       @relation(fields: [cardId], references: [id], onDelete: Cascade)
   dependent Dependent? @relation(fields: [dependentId], references: [id])
   user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([purchaseName, amount], map: "idx_transaction_purchaseName_amount")
 }
 
 model Category {
