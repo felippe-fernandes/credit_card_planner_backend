@@ -112,31 +112,47 @@ export class FindAllCardsDto {
   name?: string;
 }
 
-const resultSearchCard = {
-  id: '12345',
-  userId: '67890',
-  name: 'My Card',
-  bank: 'Bank Name',
-  flag: 'Visa',
-  limit: '1000.00',
-  dueDay: 15,
-  payDay: 30,
-  availableLimit: '800.00',
-  simulatedLimit: '0',
-  createdAt: '2023-01-01T00:00:00Z',
-  editedAt: '2023-01-01T00:00:00Z',
-};
+const resultSearchCard = [
+  {
+    id: '12345',
+    userId: '67890',
+    name: 'My Card',
+    bank: 'Bank Name',
+    flag: 'Visa',
+    limit: '1000.00',
+    dueDay: 15,
+    payDay: 30,
+    availableLimit: '800.00',
+    simulatedLimit: '0',
+    createdAt: '2023-01-01T00:00:00Z',
+    editedAt: '2023-01-01T00:00:00Z',
+  },
+  {
+    id: '67890',
+    userId: '67890',
+    name: 'My Card 2',
+    bank: 'Bank Name 2',
+    flag: 'Mastercard',
+    limit: '5000.00',
+    dueDay: 25,
+    payDay: 1,
+    availableLimit: '5000.00',
+    simulatedLimit: '0',
+    createdAt: '2023-01-01T00:00:00Z',
+    editedAt: '2023-01-01T00:00:00Z',
+  },
+];
 
 export class ResultFindAllCardDto extends ResponseWithDataDto {
   @ApiProperty({
-    example: [resultSearchCard],
+    example: resultSearchCard,
   })
   result: Card[];
 }
 
 export class ResultFindOneCardDto extends ResponseWithDataDto {
   @ApiProperty({
-    example: resultSearchCard,
+    example: resultSearchCard[0],
   })
   result: Card;
 }
