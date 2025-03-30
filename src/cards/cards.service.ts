@@ -128,8 +128,8 @@ export class CardsService {
           userId,
           AND: {
             id: { equals: filters.id },
-            name: { contains: filters.name, mode: 'insensitive' },
-            bank: { contains: filters.bank, mode: 'insensitive' },
+            name: { equals: filters.name, mode: 'insensitive' },
+            bank: { equals: filters.bank, mode: 'insensitive' },
           },
         },
       });
