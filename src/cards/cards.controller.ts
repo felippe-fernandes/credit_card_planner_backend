@@ -7,7 +7,6 @@ import {
   ApiOperation,
   ApiParam,
   ApiQuery,
-  ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
 import { AuthGuard } from 'src/auth/auth.guard';
@@ -61,7 +60,6 @@ export class CardsController {
   @Post()
   @ApiOperation({ summary: 'Create a new card for the authenticated user' })
   @ApiCreatedResponse({ type: ResultCreateCardDto })
-  @ApiResponse({ status: 201, description: 'Card created successfully' })
   async create(@Req() req: RequestWithUser, @Body() createCardDto: CreateCardDto) {
     const userId = req.user.id;
     return this.cardService.create(userId, createCardDto);
