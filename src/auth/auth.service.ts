@@ -11,6 +11,7 @@ import { Response } from 'express';
 import { PrismaService } from 'prisma/prisma.service';
 import { defaultCategories } from 'src/constants/categories';
 import { IReceivedData } from 'src/interceptors/response.interceptor';
+import { UpdateUserDto } from 'src/user/dto/user.dto';
 import { LoginDto, SignupDto } from './dto/auth.dto';
 import { supabase } from './supabase.client';
 
@@ -179,6 +180,43 @@ export class AuthService {
       res.clearCookie('auth_token');
 
       return { message: 'User successfully deleted.' };
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new BadRequestException({
+        statusCode: HttpStatus.BAD_REQUEST,
+        message: 'Error deleting user',
+      });
+    }
+  }
+
+  async updateUser(userId: string, updatedUser: UpdateUserDto) {
+    try {
+      if (!userId) {
+        throw new BadRequestException({
+          statusCode: HttpStatus.BAD_REQUEST,
+          message: 'User ID is required.',
+        });
+      }
+
+      const { error } = await supabase.auth.admin.updateUserById(userId, updatedUser);
+
+      if (error) {
+        if (error.message.includes('User not allowed')) {
+          throw new ForbiddenException({
+            statusCode: HttpStatus.FORBIDDEN,
+            message: 'You are not allowed to update this user.',
+          });
+        }
+
+        throw new BadRequestException({
+          statusCode: HttpStatus.BAD_REQUEST,
+          message: `Error updating user: ${error.message}`,
+        });
+      }
+
+      return { message: 'User successfully updated.' };
     } catch (error) {
       if (error instanceof BadRequestException) {
         throw error;
