@@ -1,21 +1,33 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
 import {
   ApiBearerAuth,
-  ApiBody,
+  ApiNotFoundResponse,
+  ApiOkResponse,
   ApiOperation,
   ApiParam,
   ApiQuery,
-  ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
 import { AuthGuard } from 'src/auth/auth.guard';
 import { RequestWithUser } from 'src/auth/interfaces/auth.interface';
+import { BaseResponseDto, ResponseNotFoundDto } from 'src/constants';
+import { ApiErrorDefaultResponses } from 'src/decorators/api-error-default-response.decorators';
 import { CategoriesService } from './categories.service';
-import { CreateCategoryDto, FindOneCategoryDto, UpdateCategoryDto } from './dto/categories.dto';
+import {
+  CreateCategoryDto,
+  FindOneCategoryDto,
+  ResultCreateCategoryDto,
+  ResultDeleteCategoryDto,
+  ResultFindAllCategoryDto,
+  ResultFindOneCategoryDto,
+  ResultUpdateCategoryDto,
+  UpdateCategoryDto,
+} from './dto/categories.dto';
 
 @Controller('categories')
 @ApiTags('Categories')
 @ApiBearerAuth()
+@ApiErrorDefaultResponses()
 @UseGuards(AuthGuard)
 export class CategoriesController {
   constructor(private categoryService: CategoriesService) {}
@@ -25,53 +37,44 @@ export class CategoriesController {
     summary: 'Get all categories',
     description: 'Retrieve all categories for the authenticated user.',
   })
-  @ApiQuery({ name: 'id', required: false, description: 'Filter by category ID' })
+  @ApiOkResponse({ type: ResultFindAllCategoryDto })
+  @ApiNotFoundResponse({ type: ResponseNotFoundDto })
   @ApiQuery({ name: 'name', required: false, description: 'Filter by category name' })
-  async findAll(@Req() req: RequestWithUser, @Query('id') id?: string, @Query('name') name?: string) {
+  async findAll(@Req() req: RequestWithUser, @Query('name') name?: string) {
     const userId = req.user.id;
-    const filters = { id, name };
+    const filters = { name };
     return this.categoryService.findAll(userId, filters);
+  }
+
+  @Post()
+  @ApiOperation({ summary: 'Create a new category' })
+  @ApiOkResponse({ type: ResultCreateCategoryDto })
+  async create(@Req() req: RequestWithUser, @Body() data: CreateCategoryDto) {
+    return this.categoryService.create(req.user.id, data);
+  }
+
+  @Post('add-defaults')
+  @ApiOperation({ summary: 'Add default categories for the user' })
+  @ApiOkResponse({ type: BaseResponseDto })
+  async addDefaults(@Req() req: RequestWithUser) {
+    return this.categoryService.addDefaultCategories(req.user.id);
   }
 
   @Get('/search')
   @ApiOperation({ summary: 'Find a category', description: 'Find a specific category by ID or name.' })
+  @ApiOkResponse({ type: ResultFindOneCategoryDto })
+  @ApiNotFoundResponse({ type: ResponseNotFoundDto })
   @ApiQuery({ name: 'name', required: false, description: 'Category name' })
-  async findOne(@Req() req: RequestWithUser, @Query('id') id?: string, @Query('name') name?: string) {
+  async findOne(@Req() req: RequestWithUser, @Query('name') name?: string) {
     const userId = req.user.id;
     const filters: FindOneCategoryDto = { name };
     return this.categoryService.findOne(userId, filters);
   }
 
-  @Post()
-  @ApiOperation({ summary: 'Create a new category' })
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: {
-        name: { type: 'string' },
-        icon: { type: 'string' },
-        color: { type: 'string' },
-      },
-    },
-  })
-  @ApiResponse({ status: 201, description: 'Category created successfully' })
-  async create(@Req() req: RequestWithUser, @Body() data: CreateCategoryDto) {
-    return this.categoryService.create(req.user.id, data);
-  }
-
   @Patch(':name')
   @ApiOperation({ summary: 'Update a category' })
+  @ApiOkResponse({ type: ResultUpdateCategoryDto })
   @ApiParam({ name: 'id', description: 'Category ID' })
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: {
-        name: { type: 'string' },
-        icon: { type: 'string' },
-        color: { type: 'string' },
-      },
-    },
-  })
   async update(
     @Req() req: RequestWithUser,
     @Param('name') categoryName: string,
@@ -83,14 +86,9 @@ export class CategoriesController {
 
   @Delete(':name')
   @ApiOperation({ summary: 'Delete a category' })
+  @ApiOkResponse({ type: ResultDeleteCategoryDto })
   @ApiParam({ name: 'name', description: 'Category name' })
   async remove(@Req() req: RequestWithUser, @Param('name') name: string) {
     return this.categoryService.remove(name, req.user.id);
-  }
-
-  @Post('add-defaults')
-  @ApiOperation({ summary: 'Add default categories for the user' })
-  async addDefaults(@Req() req: RequestWithUser) {
-    return this.categoryService.addDefaultCategories(req.user.id);
   }
 }
