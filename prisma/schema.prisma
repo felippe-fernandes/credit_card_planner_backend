@@ -35,6 +35,8 @@ model Dependent {
 
   user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   Transaction Transaction[]
+
+  @@unique([name, userId], map: "idx_dependent_name_user")
 }
 
 model Card {
@@ -77,6 +79,8 @@ model Transaction {
   card      Card       @relation(fields: [cardId], references: [id], onDelete: Cascade)
   dependent Dependent? @relation(fields: [dependentId], references: [id])
   user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([purchaseName, amount], map: "idx_transaction_purchaseName_amount")
 }
 
 model Category {
