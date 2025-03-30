@@ -155,6 +155,11 @@ export class ResultFindOneCardDto extends ResponseWithDataDto {
     example: resultSearchCard[0],
   })
   result: Card;
+
+  @ApiProperty({
+    example: 1,
+  })
+  count: number;
 }
 
 const resultCreateCard = {
