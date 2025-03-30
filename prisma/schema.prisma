@@ -35,6 +35,8 @@ model Dependent {
 
   user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   Transaction Transaction[]
+
+  @@unique([name, userId], map: "idx_dependent_name_user")
 }
 
 model Card {
