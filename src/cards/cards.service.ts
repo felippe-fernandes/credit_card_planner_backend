@@ -1,5 +1,6 @@
 import { BadRequestException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
 import { Card } from '@prisma/client';
+import { Decimal } from '@prisma/client/runtime/library';
 import { PostgrestError } from '@supabase/supabase-js';
 import { PrismaService } from 'prisma/prisma.service';
 import { IReceivedData } from 'src/interceptors/response.interceptor';
@@ -39,7 +40,8 @@ export class CardsService {
         },
       });
 
-      if (cards.length === 0) {
+      if (cardsCount === 0) {
+        console.log('🚀 | cards:', cards);
         throw new NotFoundException({
           statusCode: HttpStatus.NOT_FOUND,
           count: 0,
@@ -53,7 +55,10 @@ export class CardsService {
         message: 'Cards retrieved successfully',
         result: cards,
       };
-    } catch {
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
       throw new BadRequestException({
         statusCode: HttpStatus.BAD_REQUEST,
         message: 'Failed to retrieve cards',
@@ -61,8 +66,61 @@ export class CardsService {
     }
   }
 
+  async create(userId: string, createCardDto: CreateCardDto): Promise<IReceivedData<Card>> {
+    try {
+      const userExists = await this.prisma.user.findUnique({
+        where: { id: userId },
+      });
+
+      if (!userExists) {
+        throw new BadRequestException({
+          statusCode: HttpStatus.BAD_REQUEST,
+          message: `User with id ${userId} not found`,
+        });
+      }
+
+      const existingCard = await this.prisma.card.findFirst({
+        where: { name: createCardDto.name },
+      });
+
+      if (existingCard) {
+        throw new BadRequestException({
+          statusCode: HttpStatus.BAD_REQUEST,
+          message: 'Card with the same name already exists',
+        });
+      }
+
+      const card = await this.prisma.card.create({
+        data: {
+          ...createCardDto,
+          userId,
+          availableLimit: createCardDto.limit,
+        },
+      });
+
+      return {
+        statusCode: HttpStatus.CREATED,
+        count: 1,
+        message: 'Card created successfully',
+        result: card,
+      };
+    } catch (error: unknown) {
+      if ((error as PostgrestError).code === 'P2002') {
+        throw new BadRequestException({
+          statusCode: HttpStatus.BAD_REQUEST,
+          message: 'Error creating card: Duplicate value found',
+        });
+      } else {
+        throw new BadRequestException({
+          statusCode: HttpStatus.BAD_REQUEST,
+          message: 'Error creating card',
+        });
+      }
+    }
+  }
+
   async findOne(userId: string, filters: FindOneCardDto): Promise<IReceivedData<Card>> {
-    if ((!filters.id && !filters.name) || !filters.bank) {
+    if (!filters.id && !filters.name && !filters.bank) {
       throw new BadRequestException({
         statusCode: HttpStatus.BAD_REQUEST,
         message: 'Please provide an id, bank or name to search for',
@@ -107,58 +165,6 @@ export class CardsService {
     }
   }
 
-  async create(userId: string, createCardDto: CreateCardDto): Promise<IReceivedData<Card>> {
-    try {
-      const userExists = await this.prisma.user.findUnique({
-        where: { id: userId },
-      });
-
-      if (!userExists) {
-        throw new BadRequestException({
-          statusCode: HttpStatus.BAD_REQUEST,
-          message: `User with id ${userId} not found`,
-        });
-      }
-
-      const existingCard = await this.prisma.card.findFirst({
-        where: { name: createCardDto.name },
-      });
-
-      if (existingCard) {
-        throw new BadRequestException({
-          statusCode: HttpStatus.BAD_REQUEST,
-          message: 'Card with the same name already exists',
-        });
-      }
-
-      const card = await this.prisma.card.create({
-        data: {
-          ...createCardDto,
-          userId,
-        },
-      });
-
-      return {
-        statusCode: HttpStatus.CREATED,
-        count: 1,
-        message: 'Card created successfully',
-        result: card,
-      };
-    } catch (error: unknown) {
-      if ((error as PostgrestError).code === 'P2002') {
-        throw new BadRequestException({
-          statusCode: HttpStatus.BAD_REQUEST,
-          message: 'Error creating card: Duplicate value found',
-        });
-      } else {
-        throw new BadRequestException({
-          statusCode: HttpStatus.BAD_REQUEST,
-          message: 'Error creating card',
-        });
-      }
-    }
-  }
-
   async update(userId: string, cardId: string, updateCardDto: UpdateCardDto): Promise<IReceivedData<Card>> {
     try {
       const existingCard = await this.prisma.card.findUnique({
@@ -169,11 +175,22 @@ export class CardsService {
         throw new NotFoundException(`Card with id ${cardId} not found`);
       }
 
+      let updatedAvailableLimit = existingCard.availableLimit;
+
+      if (updateCardDto.limit) {
+        const newLimit = new Decimal(updateCardDto.limit);
+
+        const difference = newLimit.minus(existingCard.limit);
+
+        updatedAvailableLimit = existingCard.availableLimit.plus(difference);
+      }
+
       const updatedCard = await this.prisma.card.update({
         where: { id: cardId },
         data: {
           ...updateCardDto,
           userId,
+          availableLimit: updatedAvailableLimit,
         },
       });
 
@@ -210,6 +227,6 @@ export class CardsService {
 
     await this.prisma.card.delete({ where: { id: cardId } });
 
-    return { result: { cardId }, statusCode: HttpStatus.OK, message: 'Card deleted successfully' };
+    return { result: { cardId }, statusCode: HttpStatus.OK, message: 'Card deleted successfully', count: 1 };
   }
 }
