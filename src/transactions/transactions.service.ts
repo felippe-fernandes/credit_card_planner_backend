@@ -121,14 +121,12 @@ export class TransactionsService {
           userId,
           AND: {
             ...filters,
-            id: filters.id ? { equals: filters.id } : undefined,
-            purchaseName: filters.purchaseName
-              ? { contains: filters.purchaseName, mode: 'insensitive' }
-              : undefined,
+            id: filters.id ? filters.id : undefined,
+            purchaseName: filters.purchaseName ? filters.purchaseName : undefined,
             description: filters.description
               ? { contains: filters.description, mode: 'insensitive' }
               : undefined,
-            installments: filters.installments ? { equals: parseInt(filters.installments) } : undefined,
+            installments: filters.installments ? parseInt(filters.installments) : undefined,
           },
         },
         include: {
