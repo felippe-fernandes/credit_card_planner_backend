@@ -6,7 +6,7 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { Role, User } from '@prisma/client';
-import { PostgrestError, Session } from '@supabase/supabase-js';
+import { Session } from '@supabase/supabase-js';
 import { Response } from 'express';
 import { PrismaService } from 'prisma/prisma.service';
 import { defaultCategories } from 'src/constants/categories';
@@ -88,12 +88,18 @@ export class AuthService {
     });
 
     if (error) {
-      throw new HttpException(`Error signing up: ${error.message}`, HttpStatus.BAD_REQUEST);
+      throw new BadRequestException({
+        statusCode: HttpStatus.BAD_REQUEST,
+        message: `Error signing up: ${error.message}`,
+      });
     }
 
     const user = data.user;
     if (!user) {
-      throw new HttpException('Error retrieving user from Supabase', HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new BadRequestException({
+        statusCode: HttpStatus.BAD_REQUEST,
+        message: 'Error retrieving user from Supabase',
+      });
     }
 
     try {
@@ -122,28 +128,14 @@ export class AuthService {
         message: `${role} successfully created`,
         result: newUser,
       };
-    } catch (ex) {
-      const error = ex as PostgrestError;
-      await supabase.auth.admin.deleteUser(user.id);
-      if (error.code === 'P2002') {
-        throw new BadRequestException({
-          statusCode: HttpStatus.BAD_REQUEST,
-          message: 'Email already exists.',
-        });
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
       }
-      if (error.code === 'P2003') {
-        throw new BadRequestException({
-          statusCode: HttpStatus.BAD_REQUEST,
-          message: 'Invalid phone number.',
-        });
-      }
-      if (error.code === 'P2025') {
-        throw new BadRequestException({
-          statusCode: HttpStatus.BAD_REQUEST,
-          message: 'User not found.',
-        });
-      }
-      throw new HttpException('Error saving user to the database', HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new BadRequestException({
+        statusCode: HttpStatus.BAD_REQUEST,
+        message: 'Error singing up user',
+      });
     }
   }
 
@@ -160,31 +152,41 @@ export class AuthService {
   }
 
   async deleteUser(userId: string, res: Response) {
-    if (!userId) {
-      throw new BadRequestException({
-        statusCode: HttpStatus.BAD_REQUEST,
-        message: 'User ID is required.',
-      });
-    }
-
-    const { error } = await supabase.auth.admin.deleteUser(userId);
-
-    if (error) {
-      if (error.message.includes('User not allowed')) {
-        throw new ForbiddenException({
-          statusCode: HttpStatus.FORBIDDEN,
-          message: 'You are not allowed to delete this user.',
+    try {
+      if (!userId) {
+        throw new BadRequestException({
+          statusCode: HttpStatus.BAD_REQUEST,
+          message: 'User ID is required.',
         });
       }
 
+      const { error } = await supabase.auth.admin.deleteUser(userId);
+
+      if (error) {
+        if (error.message.includes('User not allowed')) {
+          throw new ForbiddenException({
+            statusCode: HttpStatus.FORBIDDEN,
+            message: 'You are not allowed to delete this user.',
+          });
+        }
+
+        throw new BadRequestException({
+          statusCode: HttpStatus.BAD_REQUEST,
+          message: `Error deleting user: ${error.message}`,
+        });
+      }
+
+      res.clearCookie('auth_token');
+
+      return { message: 'User successfully deleted.' };
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
       throw new BadRequestException({
         statusCode: HttpStatus.BAD_REQUEST,
-        message: `Error deleting user: ${error.message}`,
+        message: 'Error deleting user',
       });
     }
-
-    res.clearCookie('auth_token');
-
-    return { message: 'User successfully deleted.' };
   }
 }
