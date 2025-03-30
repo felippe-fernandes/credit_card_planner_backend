@@ -10,7 +10,7 @@ import {
 } from '@nestjs/swagger';
 import { Response } from 'express';
 import { ResponseCreatedDto, ResponseInternalServerErrorDto } from 'src/constants';
-import { ApiErrorDefaultResponses } from 'src/decorator/api-error-default-response.decorators';
+import { ApiErrorDefaultResponses } from 'src/decorators/api-error-default-response.decorators';
 import { AuthService } from './auth.service';
 import { LoginDto, ResultLoginDto, ResultSignupDto, SignupDto } from './dto/auth.dto';
 import { RequestWithUser } from './interfaces/auth.interface';
