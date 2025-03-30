@@ -120,6 +120,7 @@ export class UpdateTransactionDto {
 
   @ApiProperty({
     example: [3000, 700, 700, 700, 700, 700, 700, 700, 700, 700, 700],
+    readOnly: true,
   })
   @IsArray()
   @ArrayMinSize(1)

@@ -1,14 +1,12 @@
 import { Body, Controller, Delete, Get, Param, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
 import {
   ApiBearerAuth,
-  ApiBody,
   ApiCreatedResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
   ApiParam,
   ApiQuery,
-  ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
 import { AuthGuard } from 'src/auth/auth.guard';
@@ -23,6 +21,7 @@ import {
   ResultDeleteTransactionDto,
   ResultFindAllTransactionsDto,
   ResultFindOneTransactionDto,
+  ResultUpdateTransactionDto,
   UpdateTransactionDto,
 } from './dto/transaction.dto';
 import { TransactionsService } from './transactions.service';
@@ -124,29 +123,8 @@ export class TransactionsController {
 
   @Put(':id')
   @ApiOperation({ summary: 'Update a transaction' })
-  @ApiResponse({ status: 200, description: 'Transaction successfully updated.' })
-  @ApiResponse({ status: 404, description: 'Transaction not found.' })
+  @ApiOkResponse({ type: ResultUpdateTransactionDto })
   @ApiParam({ name: 'id', required: true, description: 'Transaction ID' })
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: {
-        purchaseName: { type: 'string' },
-        purchaseCategory: { type: 'string' },
-        purchaseDate: { type: 'string' },
-        installments: { type: 'number' },
-        cardId: { type: 'string' },
-        dependentId: { type: 'string' },
-        description: { type: 'string' },
-        amount: { type: 'number' },
-        installmentValues: {
-          type: 'array',
-          items: { type: 'number' },
-          description: 'Installment values. E.g. [100, 200]',
-        },
-      },
-    },
-  })
   async update(
     @Req() req: RequestWithUser,
     @Param('id') transactionId: string,

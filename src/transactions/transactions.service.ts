@@ -295,19 +295,51 @@ export class TransactionsService {
         throw new NotFoundException(`Transaction with id ${transactionId} not found`);
       }
 
-      const amountDecimal = new Decimal(updateTransactionDto.amount ?? existingTransaction.amount);
+      const newAmountDecimal = new Decimal(updateTransactionDto.amount ?? existingTransaction.amount);
+      const amountChanged = !newAmountDecimal.equals(existingTransaction.amount);
 
-      const finalInstallmentValues: Decimal[] = (
-        updateTransactionDto.installmentValues ?? existingTransaction.installmentsValue
-      ).map((value) => new Decimal(value));
-      console.log('🚀 | finalInstallmentValues:', finalInstallmentValues);
+      // Se o 'amount' foi alterado, precisamos recalcular 'installmentValues' e 'installmentDates'
+      let finalInstallmentValues: Decimal[] = existingTransaction.installmentsValue.map(
+        (value) => new Decimal(value),
+      );
+      let installmentDates = existingTransaction.installmentDates;
 
-      this.validateInstallments(amountDecimal, finalInstallmentValues);
+      if (amountChanged) {
+        // Calcular os novos valores das parcelas
+        finalInstallmentValues = this.calculateInstallments(
+          newAmountDecimal,
+          updateTransactionDto.installments ?? existingTransaction.installments,
+          updateTransactionDto.installmentValues && updateTransactionDto.installmentValues.length > 0
+            ? updateTransactionDto.installmentValues.map((installmentValue) => new Decimal(installmentValue))
+            : undefined,
+        );
+
+        this.validateInstallments(newAmountDecimal, finalInstallmentValues);
+
+        const transactionDate = updateTransactionDto.purchaseDate
+          ? new Date(updateTransactionDto.purchaseDate)
+          : new Date();
+        const card = await this.prisma.card.findUnique({
+          where: { id: existingTransaction.cardId },
+        });
+        if (!card) {
+          throw new NotFoundException('Card not found');
+        }
+
+        installmentDates = calculateInstallmentDates(
+          transactionDate,
+          card.payDay,
+          updateTransactionDto.installments ?? existingTransaction.installments,
+        );
+      }
 
       const updatedTransaction = await this.prisma.transaction.update({
         where: { id: transactionId },
         data: {
           ...updateTransactionDto,
+          amount: newAmountDecimal,
+          installmentsValue: finalInstallmentValues.map((v) => v.toString()),
+          installmentDates,
         },
       });
 
