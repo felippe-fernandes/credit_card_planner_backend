@@ -40,7 +40,6 @@ export class CardsService {
       });
 
       if (cardsCount === 0) {
-        console.log('🚀 | cards:', cards);
         throw new NotFoundException({
           statusCode: HttpStatus.NOT_FOUND,
           count: 0,
