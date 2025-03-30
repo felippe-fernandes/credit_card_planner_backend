@@ -277,6 +277,7 @@ const resultSearchTransactions = [
     },
   },
 ];
+
 export class ResultFindAllTransactionsDto extends ResponseWithDataDto {
   @ApiProperty({
     example: resultSearchTransactions,
@@ -296,7 +297,7 @@ export class ResultFindOneTransactionDto extends ResponseWithDataDto {
   result: Transaction;
 
   @ApiProperty({
-    example: 3,
+    example: 1,
   })
   count: number;
 }
