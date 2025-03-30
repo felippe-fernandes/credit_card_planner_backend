@@ -40,6 +40,46 @@ export class TransactionsService {
     });
   }
 
+  private calculateInstallments(
+    amount: Decimal,
+    installments: number,
+    installmentValues: Decimal[] | undefined,
+  ): Decimal[] {
+    const calculatedInstallments: Decimal[] = Array(installments)
+      .fill(amount.div(installments))
+      .map((value, index, array) => {
+        if (index === array.length - 1) {
+          const previousInstallments = array.slice(0, -1);
+          if (previousInstallments.length === 0) {
+            return amount;
+          }
+          const sumPreviousInstallments = Decimal.sum(...previousInstallments);
+          return amount.minus(sumPreviousInstallments);
+        }
+        return value as Decimal;
+      });
+
+    return (installmentValues ?? calculatedInstallments).map((value) => new Decimal(value));
+  }
+
+  private validateInstallments(amount: Decimal, installments: Decimal[]): void {
+    const totalInstallments = installments.reduce((sum, value) => sum.plus(value), new Decimal(0));
+
+    if (installments.length !== totalInstallments.toNumber()) {
+      const difference = amount.minus(totalInstallments);
+      installments[installments.length - 1] = installments[installments.length - 1].plus(difference);
+    }
+
+    if (
+      installments.some((value) => value.lte(0) || value.isNaN()) ||
+      !installments.reduce((sum, value) => sum.plus(value), new Decimal(0)).equals(amount)
+    ) {
+      throw new BadRequestException(
+        `Invalid installment values. Ensure all values are positive, valid numbers, and their sum equals the total amount (${amount.toString()})`,
+      );
+    }
+  }
+
   async findAll(userId: string, filters: FindAllTransactionsDto): Promise<IReceivedData<Transaction[]>> {
     const { purchaseName, installmentDates, ...restOfTheFilters } = filters;
 
@@ -116,54 +156,17 @@ export class TransactionsService {
       createTransactionDto;
 
     const amountDecimal = new Decimal(amount);
-
     const transactionDate = purchaseDate ? new Date(purchaseDate) : new Date();
 
-    const calculatedInstallments: Decimal[] = Array(installments)
-      .fill(amountDecimal.div(installments))
-      .map((value, index, array) => {
-        if (index === array.length - 1) {
-          const sumPreviousInstallments = Decimal.sum(...array.slice(0, -1));
-          return amountDecimal.minus(sumPreviousInstallments);
-        }
-        return value as Decimal;
-      });
-
-    const finalInstallmentValues: Decimal[] = (installmentValues ?? calculatedInstallments.map((v) => v)).map(
-      (value) => new Decimal(value),
+    const finalInstallmentValues = this.calculateInstallments(
+      amountDecimal,
+      installments,
+      installmentValues && installmentValues.length > 0
+        ? installmentValues.map((installmentValue) => new Decimal(installmentValue))
+        : undefined,
     );
 
-    console.log('🚀 | finalInstallmentValues:', {
-      finalInstallmentValues: finalInstallmentValues.reduce((sum, value) => sum.plus(value), new Decimal(0)),
-      amountDecimal: amountDecimal,
-    });
-
-    // Verificando se o número de parcelas está correto
-    if (finalInstallmentValues.length !== installments) {
-      throw new BadRequestException(
-        `Number of installments (${installments}) does not match the provided values (${finalInstallmentValues.length})`,
-      );
-    }
-
-    // Calculando a soma total das parcelas
-    const totalInstallments = finalInstallmentValues.reduce((sum, value) => sum.plus(value), new Decimal(0));
-
-    // Se a soma das parcelas não for igual ao valor total, ajustamos a última parcela
-    if (!totalInstallments.equals(amountDecimal)) {
-      const difference = amountDecimal.minus(totalInstallments); // Calcula a diferença
-      finalInstallmentValues[finalInstallmentValues.length - 1] =
-        finalInstallmentValues[finalInstallmentValues.length - 1].plus(difference); // Ajusta a última parcela
-    }
-
-    // Validando se as parcelas são positivas e a soma é correta
-    if (
-      finalInstallmentValues.some((value) => value.lte(0) || value.isNaN()) ||
-      !finalInstallmentValues.reduce((sum, value) => sum.plus(value), new Decimal(0)).equals(amountDecimal)
-    ) {
-      throw new BadRequestException(
-        `Invalid installment values. Ensure all values are positive, valid numbers, and their sum equals the total amount (${amountDecimal.toString()})`,
-      );
-    }
+    this.validateInstallments(amountDecimal, finalInstallmentValues);
 
     const card = await this.prisma.card.findUnique({ where: { id: cardId } });
 
@@ -287,20 +290,7 @@ export class TransactionsService {
         (value) => new Decimal(value),
       );
 
-      if (finalInstallmentValues.length !== updateTransactionDto.installments) {
-        throw new BadRequestException(
-          `Number of installments (${updateTransactionDto.installments}) does not match the provided values (${finalInstallmentValues.length})`,
-        );
-      }
-
-      if (
-        finalInstallmentValues.some((value) => value.lte(0) || value.isNaN()) ||
-        !finalInstallmentValues.reduce((sum, value) => sum.plus(value), new Decimal(0)).equals(amountDecimal)
-      ) {
-        throw new BadRequestException(
-          `Invalid installment values. Ensure all values are positive, valid numbers, and their sum equals the total amount (${amountDecimal.toString()})`,
-        );
-      }
+      this.validateInstallments(amountDecimal, finalInstallmentValues);
 
       const updatedTransaction = await this.prisma.transaction.update({
         where: { id: transactionId },
@@ -323,7 +313,7 @@ export class TransactionsService {
       }
       throw new BadRequestException({
         statusCode: HttpStatus.BAD_REQUEST,
-        message: 'Error creating transaction',
+        message: 'Error updating transaction',
       });
     }
   }
