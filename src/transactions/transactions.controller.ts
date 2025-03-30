@@ -2,6 +2,9 @@ import { Body, Controller, Delete, Get, Param, Post, Put, Query, Req, UseGuards 
 import {
   ApiBearerAuth,
   ApiBody,
+  ApiCreatedResponse,
+  ApiNotFoundResponse,
+  ApiOkResponse,
   ApiOperation,
   ApiParam,
   ApiQuery,
@@ -10,10 +13,16 @@ import {
 } from '@nestjs/swagger';
 import { AuthGuard } from 'src/auth/auth.guard';
 import { RequestWithUser } from 'src/auth/interfaces/auth.interface';
+import { ResponseNotFoundDto } from 'src/constants';
+import { ApiErrorDefaultResponses } from 'src/decorators/api-error-default-response.decorators';
 import {
   CreateTransactionDto,
   FindAllTransactionsDto,
   FindOneTransactionDto,
+  ResultCreateTransactionDto,
+  ResultDeleteTransactionDto,
+  ResultFindAllTransactionsDto,
+  ResultFindOneTransactionDto,
   UpdateTransactionDto,
 } from './dto/transaction.dto';
 import { TransactionsService } from './transactions.service';
@@ -21,13 +30,15 @@ import { TransactionsService } from './transactions.service';
 @Controller('transactions')
 @ApiTags('Transactions')
 @ApiBearerAuth()
+@ApiErrorDefaultResponses()
 @UseGuards(AuthGuard)
 export class TransactionsController {
   constructor(private readonly transactionsService: TransactionsService) {}
 
   @Get()
   @ApiOperation({ summary: 'Retrieve all transactions' })
-  @ApiResponse({ status: 200, description: 'List of transactions successfully retrieved.' })
+  @ApiOkResponse({ type: ResultFindAllTransactionsDto })
+  @ApiNotFoundResponse({ type: ResponseNotFoundDto })
   @ApiQuery({ name: 'card', required: false, description: 'Card ID' })
   @ApiQuery({ name: 'dependent', required: false, description: 'Dependent ID' })
   @ApiQuery({ name: 'purchaseName', required: false, description: 'Purchase name' })
@@ -69,10 +80,18 @@ export class TransactionsController {
     return this.transactionsService.findAll(userId, filters);
   }
 
+  @Post()
+  @ApiOperation({ summary: 'Create a new transaction' })
+  @ApiCreatedResponse({ type: ResultCreateTransactionDto })
+  async create(@Req() req: RequestWithUser, @Body() createTransactionDto: CreateTransactionDto) {
+    const userId = req.user.id;
+    return this.transactionsService.create(userId, createTransactionDto);
+  }
+
   @Get('/search')
   @ApiOperation({ summary: 'Retrieve a transaction by ID' })
-  @ApiResponse({ status: 200, description: 'Transaction found.' })
-  @ApiResponse({ status: 404, description: 'Transaction not found.' })
+  @ApiOkResponse({ type: ResultFindOneTransactionDto })
+  @ApiNotFoundResponse({ type: ResponseNotFoundDto })
   @ApiQuery({ name: 'id', required: false, description: 'Transaction ID' })
   @ApiQuery({ name: 'purchaseName', required: false, description: 'Purchase name' })
   @ApiQuery({ name: 'dependentId', required: false, description: 'Dependent ID' })
@@ -80,7 +99,6 @@ export class TransactionsController {
   @ApiQuery({ name: 'purchaseCategory', required: false, description: 'Purchase category' })
   @ApiQuery({ name: 'description', required: false, description: 'Description' })
   @ApiQuery({ name: 'purchaseDate', required: false, description: 'Purchase date' })
-  @ApiQuery({ name: 'installments', required: false, description: 'Number of installments' })
   async findOne(
     @Req() req: RequestWithUser,
     @Query('id') id?: string,
@@ -90,7 +108,6 @@ export class TransactionsController {
     @Query('purchaseCategory') purchaseCategory?: string,
     @Query('description') description?: string,
     @Query('purchaseDate') purchaseDate?: string,
-    @Query('installments') installments?: string,
   ) {
     const userId = req.user.id;
     const filters: FindOneTransactionDto = {
@@ -101,38 +118,8 @@ export class TransactionsController {
       purchaseCategory,
       description,
       purchaseDate,
-      installments,
     };
     return this.transactionsService.findOne(userId, filters);
-  }
-
-  @Post()
-  @ApiOperation({ summary: 'Create a new transaction' })
-  @ApiResponse({ status: 201, description: 'Transaction successfully created.' })
-  @ApiResponse({ status: 400, description: 'Invalid data.' })
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: {
-        purchaseName: { type: 'string' },
-        purchaseCategory: { type: 'string' },
-        purchaseDate: { type: 'string' },
-        installments: { type: 'number' },
-        cardId: { type: 'string' },
-        dependentId: { type: 'string' },
-        description: { type: 'string' },
-        amount: { type: 'number' },
-        installmentValues: {
-          type: 'array',
-          items: { type: 'number' },
-          description: 'Installment values. E.g. [100, 200]',
-        },
-      },
-    },
-  })
-  async create(@Req() req: RequestWithUser, @Body() createTransactionDto: CreateTransactionDto) {
-    const userId = req.user.id;
-    return this.transactionsService.create(userId, createTransactionDto);
   }
 
   @Put(':id')
@@ -171,8 +158,7 @@ export class TransactionsController {
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a transaction' })
-  @ApiResponse({ status: 200, description: 'Transaction successfully deleted.' })
-  @ApiResponse({ status: 404, description: 'Transaction not found.' })
+  @ApiOkResponse({ type: ResultDeleteTransactionDto })
   @ApiParam({ name: 'id', required: true, description: 'Transaction ID' })
   async remove(@Req() req: RequestWithUser, @Param('id') transactionId: string) {
     const userId = req.user.id;

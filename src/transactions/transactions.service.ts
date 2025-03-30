@@ -1,7 +1,6 @@
 import { BadRequestException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
 import { Transaction } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
-import { PostgrestError } from '@supabase/supabase-js';
 import { PrismaService } from 'prisma/prisma.service';
 import { IReceivedData } from 'src/interceptors/response.interceptor';
 import { calculateInstallmentDates } from 'src/utils/transactions';
@@ -99,72 +98,12 @@ export class TransactionsService {
         result: transactions,
       };
     } catch (error) {
-      console.log('🚀 | error:', error);
-      throw new BadRequestException({
-        statusCode: HttpStatus.BAD_REQUEST,
-        message: 'Failed to retrieve transactions',
-      });
-    }
-  }
-
-  async findOne(userId: string, filters: FindOneTransactionDto): Promise<IReceivedData<Transaction>> {
-    if (Object.values(filters).every((value) => value === undefined)) {
-      throw new BadRequestException({
-        statusCode: HttpStatus.BAD_REQUEST,
-        message: 'Please provide at least one parameter to search for a transaction',
-      });
-    }
-
-    try {
-      const transaction = await this.prisma.transaction.findFirst({
-        where: {
-          userId,
-          AND: {
-            ...filters,
-            id: filters.id ? filters.id : undefined,
-            purchaseName: filters.purchaseName ? filters.purchaseName : undefined,
-            description: filters.description
-              ? { contains: filters.description, mode: 'insensitive' }
-              : undefined,
-            installments: filters.installments ? parseInt(filters.installments) : undefined,
-          },
-        },
-        include: {
-          card: {
-            select: {
-              name: true,
-            },
-          },
-          dependent: {
-            select: {
-              name: true,
-            },
-          },
-        },
-      });
-
-      if (!transaction) {
-        throw new NotFoundException({
-          statusCode: HttpStatus.NOT_FOUND,
-          count: 0,
-          message: `Transaction not found for user with id ${userId}`,
-          data: null,
-        });
-      }
-
-      return {
-        statusCode: HttpStatus.OK,
-        count: 1,
-        message: 'Transaction retrieved successfully',
-        result: transaction,
-      };
-    } catch (error) {
-      if (error instanceof NotFoundException) {
+      if (error instanceof BadRequestException || error instanceof NotFoundException) {
         throw error;
       }
       throw new BadRequestException({
         statusCode: HttpStatus.BAD_REQUEST,
-        message: 'Failed to retrieve transaction',
+        message: 'Error creating transaction',
       });
     }
   }
@@ -194,26 +133,35 @@ export class TransactionsService {
       (value) => new Decimal(value),
     );
 
+    console.log('🚀 | finalInstallmentValues:', {
+      finalInstallmentValues: finalInstallmentValues.reduce((sum, value) => sum.plus(value), new Decimal(0)),
+      amountDecimal: amountDecimal,
+    });
+
+    // Verificando se o número de parcelas está correto
     if (finalInstallmentValues.length !== installments) {
       throw new BadRequestException(
         `Number of installments (${installments}) does not match the provided values (${finalInstallmentValues.length})`,
       );
     }
 
+    // Calculando a soma total das parcelas
+    const totalInstallments = finalInstallmentValues.reduce((sum, value) => sum.plus(value), new Decimal(0));
+
+    // Se a soma das parcelas não for igual ao valor total, ajustamos a última parcela
+    if (!totalInstallments.equals(amountDecimal)) {
+      const difference = amountDecimal.minus(totalInstallments); // Calcula a diferença
+      finalInstallmentValues[finalInstallmentValues.length - 1] =
+        finalInstallmentValues[finalInstallmentValues.length - 1].plus(difference); // Ajusta a última parcela
+    }
+
+    // Validando se as parcelas são positivas e a soma é correta
     if (
       finalInstallmentValues.some((value) => value.lte(0) || value.isNaN()) ||
       !finalInstallmentValues.reduce((sum, value) => sum.plus(value), new Decimal(0)).equals(amountDecimal)
     ) {
       throw new BadRequestException(
         `Invalid installment values. Ensure all values are positive, valid numbers, and their sum equals the total amount (${amountDecimal.toString()})`,
-      );
-    }
-
-    const totalInstallments = finalInstallmentValues.reduce((sum, value) => sum.plus(value), new Decimal(0));
-
-    if (!totalInstallments.equals(amountDecimal)) {
-      throw new BadRequestException(
-        `The sum of installments (${totalInstallments.toString()}) must be equal to the total purchase amount (${amountDecimal.toString()})`,
       );
     }
 
@@ -248,17 +196,74 @@ export class TransactionsService {
         result: transaction,
       };
     } catch (error: unknown) {
-      if ((error as PostgrestError).code === 'P2002') {
-        throw new BadRequestException({
-          statusCode: HttpStatus.BAD_REQUEST,
-          message: 'Error processing transaction: Duplicate value found',
-        });
-      } else {
-        throw new BadRequestException({
-          statusCode: HttpStatus.BAD_REQUEST,
-          message: 'Error creating transaction',
+      if (error instanceof BadRequestException || error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new BadRequestException({
+        statusCode: HttpStatus.BAD_REQUEST,
+        message: 'Error creating transaction',
+      });
+    }
+  }
+
+  async findOne(userId: string, filters: FindOneTransactionDto): Promise<IReceivedData<Transaction>> {
+    if (Object.values(filters).every((value) => value === undefined)) {
+      throw new BadRequestException({
+        statusCode: HttpStatus.BAD_REQUEST,
+        message: 'Please provide at least one parameter to search for a transaction',
+      });
+    }
+
+    try {
+      const transaction = await this.prisma.transaction.findFirst({
+        where: {
+          userId,
+          AND: {
+            ...filters,
+            id: filters.id ? filters.id : undefined,
+            purchaseName: filters.purchaseName ? filters.purchaseName : undefined,
+            description: filters.description
+              ? { contains: filters.description, mode: 'insensitive' }
+              : undefined,
+          },
+        },
+        include: {
+          card: {
+            select: {
+              name: true,
+            },
+          },
+          dependent: {
+            select: {
+              name: true,
+            },
+          },
+        },
+      });
+
+      if (!transaction) {
+        throw new NotFoundException({
+          statusCode: HttpStatus.NOT_FOUND,
+          count: 0,
+          message: `Transaction not found for user with id ${userId}`,
+          data: null,
         });
       }
+
+      return {
+        statusCode: HttpStatus.OK,
+        count: 1,
+        message: 'Transaction retrieved successfully',
+        result: transaction,
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException || error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new BadRequestException({
+        statusCode: HttpStatus.BAD_REQUEST,
+        message: 'Failed to retrieve transaction',
+      });
     }
   }
 
@@ -313,17 +318,13 @@ export class TransactionsService {
         result: updatedTransaction,
       };
     } catch (error: unknown) {
-      if ((error as PostgrestError).code === 'P2002') {
-        throw new BadRequestException({
-          statusCode: HttpStatus.BAD_REQUEST,
-          message: 'Error updating transaction: Duplicate value found',
-        });
-      } else {
-        throw new NotFoundException({
-          statusCode: HttpStatus.NOT_FOUND,
-          message: `Transaction with id ${userId} not found`,
-        });
+      if (error instanceof BadRequestException || error instanceof NotFoundException) {
+        throw error;
       }
+      throw new BadRequestException({
+        statusCode: HttpStatus.BAD_REQUEST,
+        message: 'Error creating transaction',
+      });
     }
   }
 
