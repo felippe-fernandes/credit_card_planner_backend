@@ -81,7 +81,7 @@ export class CategoriesService {
       }
 
       const existingCategory = await this.prisma.category.findFirst({
-        where: { userId, AND: { name: { contains: data.name, mode: 'insensitive' } } },
+        where: { userId, AND: { name: data.name } },
       });
 
       if (existingCategory) {
@@ -149,7 +149,7 @@ export class CategoriesService {
         where: {
           userId,
           AND: {
-            name: { contains: filters.name, mode: 'insensitive' },
+            name: filters.name,
           },
         },
       });
@@ -185,7 +185,7 @@ export class CategoriesService {
   ): Promise<IReceivedData<Category>> {
     try {
       const existingCard = await this.prisma.category.findFirst({
-        where: { userId, AND: { name: { contains: categoryName, mode: 'insensitive' } } },
+        where: { userId, AND: { name: categoryName } },
       });
 
       if (!existingCard) {
@@ -223,7 +223,7 @@ export class CategoriesService {
   async remove(categoryName: string, userId: string): Promise<IReceivedData<{ category: Category['name'] }>> {
     try {
       const existingCategory = await this.prisma.category.findFirst({
-        where: { userId, AND: { name: { equals: categoryName, mode: 'insensitive' } } },
+        where: { userId, AND: { name: categoryName } },
       });
 
       if (!existingCategory || existingCategory.userId !== userId) {
