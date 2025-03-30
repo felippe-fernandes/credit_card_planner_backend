@@ -128,6 +128,7 @@ export class UserService {
         result: { userId },
         statusCode: HttpStatus.OK,
         message: 'User deleted successfully',
+        count: 1,
       };
     } catch {
       throw new NotFoundException({
