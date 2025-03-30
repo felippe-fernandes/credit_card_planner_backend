@@ -4,7 +4,6 @@ import { Response } from 'express';
 interface ErrorResponse {
   success: boolean;
   statusCode: number;
-  error: string;
   message: string;
   data?: null;
   count?: number;
@@ -28,7 +27,6 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const errorResponse: ErrorResponse = {
       success: false,
       statusCode: status,
-      error: exception.name || 'Error',
       message,
     };
 
