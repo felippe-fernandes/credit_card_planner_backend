@@ -298,14 +298,12 @@ export class TransactionsService {
       const newAmountDecimal = new Decimal(updateTransactionDto.amount ?? existingTransaction.amount);
       const amountChanged = !newAmountDecimal.equals(existingTransaction.amount);
 
-      // Se o 'amount' foi alterado, precisamos recalcular 'installmentValues' e 'installmentDates'
       let finalInstallmentValues: Decimal[] = existingTransaction.installmentsValue.map(
         (value) => new Decimal(value),
       );
       let installmentDates = existingTransaction.installmentDates;
 
       if (amountChanged) {
-        // Calcular os novos valores das parcelas
         finalInstallmentValues = this.calculateInstallments(
           newAmountDecimal,
           updateTransactionDto.installments ?? existingTransaction.installments,
