@@ -1,23 +1,48 @@
 import { Body, Controller, Post, Req, Res, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiCreatedResponse,
+  ApiExcludeEndpoint,
+  ApiInternalServerErrorResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { Response } from 'express';
+import { ResponseCreatedDto, ResponseInternalServerErrorDto } from 'src/constants';
+import { ApiErrorDefaultResponses } from 'src/decorator/api-error-default-response.decorators';
 import { AuthService } from './auth.service';
-import { LoginDto, SignupDto } from './dto/auth.dto';
+import { LoginDto, ResultLoginDto, ResultSignupDto, SignupDto } from './dto/auth.dto';
 import { RequestWithUser } from './interfaces/auth.interface';
 import { Roles } from './roles/roles.decorator';
 import { RolesGuard } from './roles/roles.guard';
 
 @Controller('auth')
 @ApiTags('Authentication')
+@ApiErrorDefaultResponses()
+@ApiInternalServerErrorResponse({ type: ResponseInternalServerErrorDto })
 @UseGuards(RolesGuard)
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  @Post('login')
+  @ApiOperation({ summary: 'Login a user' })
+  @ApiOkResponse({ type: ResultLoginDto })
+  async signIn(@Body() body: LoginDto, @Res({ passthrough: true }) response: Response) {
+    return await this.authService.signIn(body, response);
+  }
+
+  @Post('signout')
+  @ApiOperation({ summary: 'Login a user' })
+  @ApiCreatedResponse({ type: ResponseCreatedDto })
+  async signOut(@Req() req: RequestWithUser, @Res({ passthrough: true }) response: Response) {
+    return await this.authService.signOut(response);
+  }
+
   @Post('signup')
   @ApiOperation({ summary: 'Create a new user' })
-  @ApiResponse({ status: 201, description: 'User created successfully.' })
-  @ApiResponse({ status: 400, description: 'Error signing up.' })
-  @ApiResponse({ status: 500, description: 'Error retrieving user from Supabase.' })
+  @ApiCreatedResponse({ type: ResultSignupDto })
+  @ApiExcludeEndpoint()
   async signUpUser(@Body() body: SignupDto) {
     return await this.authService.signUpUser(body);
   }
@@ -26,9 +51,8 @@ export class AuthController {
   @ApiBearerAuth()
   @Roles('SUPER_ADMIN')
   @ApiOperation({ summary: 'Create a new admin' })
-  @ApiResponse({ status: 201, description: 'Admin created successfully.' })
-  @ApiResponse({ status: 400, description: 'Error signing up.' })
-  @ApiResponse({ status: 500, description: 'Error retrieving user from Supabase.' })
+  @ApiCreatedResponse({ type: ResultSignupDto })
+  @ApiExcludeEndpoint()
   async signUpAdmin(@Req() req: RequestWithUser, @Body() body: SignupDto) {
     return await this.authService.signUpAdmin(body);
   }
@@ -37,30 +61,9 @@ export class AuthController {
   @ApiBearerAuth()
   @Roles('SUPER_ADMIN')
   @ApiOperation({ summary: 'Create a new super admin' })
-  @ApiResponse({ status: 201, description: 'Super admin created successfully.' })
-  @ApiResponse({ status: 400, description: 'Error signing up.' })
-  @ApiResponse({ status: 500, description: 'Error retrieving user from Supabase.' })
+  @ApiCreatedResponse({ type: ResultSignupDto })
+  @ApiExcludeEndpoint()
   async signUpSuperAdmin(@Body() body: SignupDto) {
     return await this.authService.signUpSuperAdmin(body);
-  }
-
-  @Post('login')
-  @ApiOperation({ summary: 'Login a user' })
-  @ApiResponse({ status: 200, description: 'User logged in successfully.' })
-  @ApiResponse({ status: 400, description: 'Error logging in.' })
-  @ApiResponse({ status: 401, description: 'Unauthorized.' })
-  @ApiResponse({ status: 500, description: 'Error retrieving user from Supabase.' })
-  async signIn(@Body() body: LoginDto, @Res({ passthrough: true }) response: Response) {
-    return await this.authService.signIn(body, response);
-  }
-
-  @Post('signout')
-  @ApiOperation({ summary: 'Login a user' })
-  @ApiResponse({ status: 200, description: 'User logged out successfully.' })
-  @ApiResponse({ status: 400, description: 'Error signing out.' })
-  @ApiResponse({ status: 403, description: 'Forbidden.' })
-  @ApiResponse({ status: 500, description: 'Error retrieving user from Supabase.' })
-  async signOut(@Req() req: RequestWithUser, @Res({ passthrough: true }) response: Response) {
-    return await this.authService.signOut(response);
   }
 }
