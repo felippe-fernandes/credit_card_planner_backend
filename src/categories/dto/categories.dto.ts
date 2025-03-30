@@ -113,7 +113,7 @@ export class ResultFindOneCategoryDto extends ResponseWithDataDto {
   result: Category;
 
   @ApiProperty({
-    example: 3,
+    example: 1,
   })
   count: number;
 }

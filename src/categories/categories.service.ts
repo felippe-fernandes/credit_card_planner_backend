@@ -1,6 +1,5 @@
 import { BadRequestException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
 import { Category } from '@prisma/client';
-import { PostgrestError } from '@supabase/supabase-js';
 import { PrismaService } from 'prisma/prisma.service';
 import { defaultCategories } from 'src/constants/categories';
 import { IReceivedData } from 'src/interceptors/response.interceptor';
@@ -206,17 +205,13 @@ export class CategoriesService {
         result: updatedCategory,
       };
     } catch (error: unknown) {
-      if ((error as PostgrestError).code === 'P2002') {
-        throw new BadRequestException({
-          statusCode: HttpStatus.BAD_REQUEST,
-          message: 'Error updating category: Duplicate value found',
-        });
-      } else {
-        throw new NotFoundException({
-          statusCode: HttpStatus.NOT_FOUND,
-          message: `Category with id ${userId} not found`,
-        });
+      if (error instanceof BadRequestException || error instanceof NotFoundException) {
+        throw error;
       }
+      throw new BadRequestException({
+        statusCode: HttpStatus.BAD_REQUEST,
+        message: 'Error updating category',
+      });
     }
   }
 
