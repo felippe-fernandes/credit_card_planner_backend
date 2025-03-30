@@ -5,6 +5,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as cookieParser from 'cookie-parser';
 import * as dotenv from 'dotenv';
 import { AppModule } from './app.module';
+import { HttpExceptionFilter } from './interceptors/http-exceptions.interceptor';
 import { ResponseInterceptor } from './interceptors/response.interceptor';
 
 dotenv.config();
@@ -27,6 +28,8 @@ async function bootstrap() {
   );
 
   app.useGlobalInterceptors(new ResponseInterceptor());
+
+  app.useGlobalFilters(new HttpExceptionFilter());
 
   app.enableCors({
     origin: 'http://localhost:3000',

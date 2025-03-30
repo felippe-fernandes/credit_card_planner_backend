@@ -30,7 +30,7 @@ import { UserService } from './user.service';
 export class UserController {
   constructor(
     private readonly userService: UserService,
-    private readonly supabaseService: AuthService,
+    private readonly authService: AuthService,
   ) {}
 
   @Get()
@@ -86,7 +86,7 @@ export class UserController {
   async remove(@Req() req: RequestWithUser, @Res() res: Response) {
     const userId = req.user.id;
     try {
-      await this.supabaseService.deleteUser(userId, res);
+      await this.authService.deleteUser(userId, res);
       return this.userService.remove(userId);
     } catch (error) {
       console.error('Error deleting user:', error);
@@ -105,7 +105,7 @@ export class UserController {
   @ApiResponse({ status: 400, description: 'Error deleting user.' })
   async deleteUser(@Param('userId') userId: string, @Res({ passthrough: true }) response: Response) {
     try {
-      await this.supabaseService.deleteUser(userId, response);
+      await this.authService.deleteUser(userId, response);
       return this.userService.remove(userId);
     } catch (error) {
       console.error('Error deleting user:', error);
