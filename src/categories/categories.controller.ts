@@ -74,7 +74,7 @@ export class CategoriesController {
   @Patch(':name')
   @ApiOperation({ summary: 'Update a category' })
   @ApiOkResponse({ type: ResultUpdateCategoryDto })
-  @ApiParam({ name: 'id', description: 'Category ID' })
+  @ApiParam({ name: 'name', description: 'Category Name', required: false })
   async update(
     @Req() req: RequestWithUser,
     @Param('name') categoryName: string,
