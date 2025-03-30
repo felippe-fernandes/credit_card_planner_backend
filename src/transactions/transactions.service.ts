@@ -176,6 +176,17 @@ export class TransactionsService {
 
     const installmentDates = calculateInstallmentDates(transactionDate, card.payDay, installments);
 
+    const existingTransaction = await this.prisma.transaction.findUnique({
+      where: { purchaseName_amount: { purchaseName: rest.purchaseName, amount: amountDecimal } },
+    });
+
+    if (existingTransaction) {
+      throw new BadRequestException({
+        statusCode: HttpStatus.BAD_REQUEST,
+        message: 'Transaction with the same name and value already exists',
+      });
+    }
+
     try {
       const transaction = await this.prisma.transaction.create({
         data: {
@@ -286,9 +297,10 @@ export class TransactionsService {
 
       const amountDecimal = new Decimal(updateTransactionDto.amount ?? existingTransaction.amount);
 
-      const finalInstallmentValues: Decimal[] = (updateTransactionDto.installmentValues ?? []).map(
-        (value) => new Decimal(value),
-      );
+      const finalInstallmentValues: Decimal[] = (
+        updateTransactionDto.installmentValues ?? existingTransaction.installmentsValue
+      ).map((value) => new Decimal(value));
+      console.log('🚀 | finalInstallmentValues:', finalInstallmentValues);
 
       this.validateInstallments(amountDecimal, finalInstallmentValues);
 
@@ -307,7 +319,7 @@ export class TransactionsService {
         message: 'Transaction updated successfully',
         result: updatedTransaction,
       };
-    } catch (error: unknown) {
+    } catch (error) {
       if (error instanceof BadRequestException || error instanceof NotFoundException) {
         throw error;
       }
