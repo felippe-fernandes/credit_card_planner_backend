@@ -243,6 +243,7 @@ export class CategoriesService {
         result: { category: categoryName },
         statusCode: 200,
         message: 'Category deleted successfully',
+        count: 1,
       };
     } catch (error) {
       if (error instanceof NotFoundException) {
