@@ -1,6 +1,7 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
 import {
   ApiBearerAuth,
+  ApiCreatedResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
@@ -55,7 +56,7 @@ export class CategoriesController {
 
   @Post('add-defaults')
   @ApiOperation({ summary: 'Add default categories for the user' })
-  @ApiOkResponse({ type: BaseResponseDto })
+  @ApiCreatedResponse({ type: BaseResponseDto })
   async addDefaults(@Req() req: RequestWithUser) {
     return this.categoryService.addDefaultCategories(req.user.id);
   }
