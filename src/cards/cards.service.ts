@@ -1,6 +1,6 @@
 import { BadRequestException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
 import { Card } from '@prisma/client';
-import { PostgrestError } from '@supabase/supabase-js';
+import { Decimal } from '@prisma/client/runtime/library';
 import { PrismaService } from 'prisma/prisma.service';
 import { IReceivedData } from 'src/interceptors/response.interceptor';
 import { CreateCardDto, FindAllCardsDto, FindOneCardDto, UpdateCardDto } from './dto/cards.dto';
@@ -39,61 +39,19 @@ export class CardsService {
         },
       });
 
-      if (cards.length === 0) {
+      if (cardsCount === 0) {
         throw new NotFoundException({
           statusCode: HttpStatus.NOT_FOUND,
+          count: 0,
           message: 'No cards found for this user',
-          count: 0,
           data: null,
         });
       }
       return {
         statusCode: HttpStatus.OK,
-        message: 'Cards retrieved successfully',
         count: cardsCount,
+        message: 'Cards retrieved successfully',
         result: cards,
-      };
-    } catch {
-      throw new BadRequestException({
-        statusCode: HttpStatus.BAD_REQUEST,
-        message: 'Failed to retrieve cards',
-      });
-    }
-  }
-
-  async findOne(userId: string, filters: FindOneCardDto): Promise<IReceivedData<Card>> {
-    if (!filters.id && !filters.name) {
-      throw new BadRequestException({
-        statusCode: HttpStatus.BAD_REQUEST,
-        message: 'Please provide an id or name to search for',
-      });
-    }
-
-    try {
-      const card = await this.prisma.card.findFirst({
-        where: {
-          userId,
-          AND: {
-            id: { equals: filters.id },
-            name: { contains: filters.name, mode: 'insensitive' },
-          },
-        },
-      });
-
-      if (!card) {
-        throw new NotFoundException({
-          statusCode: HttpStatus.NOT_FOUND,
-          message: `Card not found for user with id ${userId}`,
-          count: 0,
-          data: null,
-        });
-      }
-
-      return {
-        statusCode: HttpStatus.OK,
-        message: 'Card retrieved successfully',
-        count: 1,
-        result: card,
       };
     } catch (error) {
       if (error instanceof NotFoundException) {
@@ -101,7 +59,7 @@ export class CardsService {
       }
       throw new BadRequestException({
         statusCode: HttpStatus.BAD_REQUEST,
-        message: 'Failed to retrieve card',
+        message: 'Failed to retrieve cards',
       });
     }
   }
@@ -134,27 +92,70 @@ export class CardsService {
         data: {
           ...createCardDto,
           userId,
+          availableLimit: createCardDto.limit,
         },
       });
 
       return {
         statusCode: HttpStatus.CREATED,
-        message: 'Card created successfully',
         count: 1,
+        message: 'Card created successfully',
         result: card,
       };
     } catch (error: unknown) {
-      if ((error as PostgrestError).code === 'P2002') {
-        throw new BadRequestException({
-          statusCode: HttpStatus.BAD_REQUEST,
-          message: 'Error creating card: Duplicate value found',
-        });
-      } else {
-        throw new BadRequestException({
-          statusCode: HttpStatus.BAD_REQUEST,
-          message: 'Error creating card',
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new BadRequestException({
+        statusCode: HttpStatus.BAD_REQUEST,
+        message: 'Error creating card',
+      });
+    }
+  }
+
+  async findOne(userId: string, filters: FindOneCardDto): Promise<IReceivedData<Card>> {
+    if (!filters.id && !filters.name && !filters.bank) {
+      throw new BadRequestException({
+        statusCode: HttpStatus.BAD_REQUEST,
+        message: 'Please provide an id, bank or name to search for',
+      });
+    }
+
+    try {
+      const card = await this.prisma.card.findFirst({
+        where: {
+          userId,
+          AND: {
+            id: { equals: filters.id },
+            name: { equals: filters.name, mode: 'insensitive' },
+            bank: { equals: filters.bank, mode: 'insensitive' },
+          },
+        },
+      });
+
+      if (!card) {
+        throw new NotFoundException({
+          statusCode: HttpStatus.NOT_FOUND,
+          count: 0,
+          message: `Card not found for user with id ${userId}`,
+          data: null,
         });
       }
+
+      return {
+        statusCode: HttpStatus.OK,
+        count: 1,
+        message: 'Card retrieved successfully',
+        result: card,
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new BadRequestException({
+        statusCode: HttpStatus.BAD_REQUEST,
+        message: 'Failed to retrieve card',
+      });
     }
   }
 
@@ -168,32 +169,39 @@ export class CardsService {
         throw new NotFoundException(`Card with id ${cardId} not found`);
       }
 
+      let updatedAvailableLimit = existingCard.availableLimit;
+
+      if (updateCardDto.limit) {
+        const newLimit = new Decimal(updateCardDto.limit);
+
+        const difference = newLimit.minus(existingCard.limit);
+
+        updatedAvailableLimit = existingCard.availableLimit.plus(difference);
+      }
+
       const updatedCard = await this.prisma.card.update({
         where: { id: cardId },
         data: {
           ...updateCardDto,
           userId,
+          availableLimit: updatedAvailableLimit,
         },
       });
 
       return {
         statusCode: HttpStatus.OK,
-        message: 'Card updated successfully',
         count: 1,
+        message: 'Card updated successfully',
         result: updatedCard,
       };
     } catch (error: unknown) {
-      if ((error as PostgrestError).code === 'P2002') {
-        throw new BadRequestException({
-          statusCode: HttpStatus.BAD_REQUEST,
-          message: 'Error updating card: Duplicate value found',
-        });
-      } else {
-        throw new NotFoundException({
-          statusCode: HttpStatus.NOT_FOUND,
-          message: `Card with id ${userId} not found`,
-        });
+      if (error instanceof BadRequestException || error instanceof NotFoundException) {
+        throw error;
       }
+      throw new BadRequestException({
+        statusCode: HttpStatus.BAD_REQUEST,
+        message: 'Error creating card',
+      });
     }
   }
 
@@ -207,8 +215,8 @@ export class CardsService {
       });
     }
 
-    await this.prisma.category.delete({ where: { id: cardId } });
+    await this.prisma.card.delete({ where: { id: cardId } });
 
-    return { result: { cardId }, statusCode: HttpStatus.OK, message: 'Card deleted successfully' };
+    return { result: { cardId }, statusCode: HttpStatus.OK, message: 'Card deleted successfully', count: 1 };
   }
 }

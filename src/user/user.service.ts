@@ -1,14 +1,16 @@
 import { BadRequestException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
 import { User } from '@prisma/client';
-import { PostgrestError } from '@supabase/supabase-js';
 import { PrismaService } from 'prisma/prisma.service';
-import { supabase } from 'src/auth/supabase.client';
+import { AuthService } from 'src/auth/auth.service';
 import { IReceivedData } from 'src/interceptors/response.interceptor';
 import { UpdateUserDto, UpdateUserRoleDto } from './dto/user.dto';
 
 @Injectable()
 export class UserService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private authService: AuthService,
+  ) {}
 
   async findAll(): Promise<IReceivedData<User[]>> {
     try {
@@ -18,21 +20,101 @@ export class UserService {
       if (users.length === 0) {
         throw new NotFoundException({
           statusCode: HttpStatus.NOT_FOUND,
-          message: 'No users found',
           count: 0,
+          message: 'No users found',
           data: null,
         });
       }
       return {
         statusCode: HttpStatus.OK,
-        message: 'Users retrieved successfully',
         count: usersCount,
+        message: 'Users retrieved successfully',
         result: users,
       };
-    } catch {
+    } catch (error) {
+      if (error instanceof BadRequestException || error instanceof NotFoundException) {
+        throw error;
+      }
       throw new BadRequestException({
         statusCode: HttpStatus.BAD_REQUEST,
         message: 'Failed to retrieve users',
+      });
+    }
+  }
+
+  async updateRole(updateUserRoleDto: UpdateUserRoleDto): Promise<IReceivedData<User>> {
+    try {
+      const existingUser = await this.prisma.user.findUnique({
+        where: { id: updateUserRoleDto.userId },
+      });
+
+      if (!existingUser) {
+        throw new BadRequestException({
+          statusCode: HttpStatus.BAD_REQUEST,
+          message: `User with id ${updateUserRoleDto.userId} not found`,
+        });
+      }
+
+      const updatedUser = await this.prisma.user.update({
+        where: { id: updateUserRoleDto.userId },
+        data: {
+          role: updateUserRoleDto.newRole,
+        },
+      });
+      return {
+        statusCode: HttpStatus.OK,
+        count: 1,
+        message: 'User role updated successfully',
+        result: updatedUser,
+      };
+    } catch (error) {
+      if (error instanceof BadRequestException || error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new BadRequestException({
+        statusCode: HttpStatus.BAD_REQUEST,
+        message: 'Error updating user role',
+      });
+    }
+  }
+
+  async remove(userId: string): Promise<IReceivedData<{ userId: User['id'] }>> {
+    try {
+      const existingUser = await this.prisma.user.findUnique({
+        where: { id: userId },
+      });
+
+      if (!existingUser) {
+        throw new BadRequestException({
+          statusCode: HttpStatus.BAD_REQUEST,
+          message: `User with id ${userId} not found`,
+        });
+      }
+
+      if (existingUser.role === 'SUPER_ADMIN') {
+        throw new BadRequestException({
+          statusCode: HttpStatus.BAD_REQUEST,
+          message: `User with id ${userId} is a SUPER_ADMIN, delete are not allowed`,
+        });
+      }
+
+      await this.prisma.user.delete({
+        where: { id: userId },
+      });
+
+      return {
+        result: { userId },
+        statusCode: HttpStatus.OK,
+        message: 'User deleted successfully',
+        count: 1,
+      };
+    } catch (error) {
+      if (error instanceof BadRequestException || error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new BadRequestException({
+        statusCode: HttpStatus.BAD_REQUEST,
+        message: 'Error deleting user',
       });
     }
   }
@@ -45,18 +127,21 @@ export class UserService {
       if (!user) {
         throw new NotFoundException({
           statusCode: HttpStatus.NOT_FOUND,
-          message: `User with id ${id} not found`,
           count: 0,
+          message: `User with id ${id} not found`,
           data: null,
         });
       }
       return {
         statusCode: HttpStatus.OK,
-        message: 'User retrieved successfully',
         count: 1,
+        message: 'User retrieved successfully',
         result: user,
       };
-    } catch {
+    } catch (error) {
+      if (error instanceof BadRequestException || error instanceof NotFoundException) {
+        throw error;
+      }
       throw new BadRequestException({
         statusCode: HttpStatus.BAD_REQUEST,
         message: 'Failed to retrieve user',
@@ -66,76 +151,43 @@ export class UserService {
 
   async update(userId: string, updateUserDto: UpdateUserDto): Promise<IReceivedData<User>> {
     try {
+      const existingUser = await this.prisma.user.findUnique({
+        where: { id: userId },
+      });
+
+      if (!existingUser) {
+        throw new BadRequestException({
+          statusCode: HttpStatus.BAD_REQUEST,
+          message: `User with id ${userId} not found`,
+        });
+      }
+
+      if (existingUser.role === 'SUPER_ADMIN') {
+        throw new BadRequestException({
+          statusCode: HttpStatus.BAD_REQUEST,
+          message: `User with id ${userId} is a SUPER_ADMIN, updates are not allowed`,
+        });
+      }
+
+      await this.authService.updateUser(userId, updateUserDto);
+
       const updatedUser = await this.prisma.user.update({
         where: { id: userId },
         data: updateUserDto,
       });
       return {
         statusCode: HttpStatus.OK,
+        count: 1,
         message: 'User updated successfully',
-        count: 1,
         result: updatedUser,
       };
-    } catch (error: unknown) {
-      if ((error as PostgrestError).code === 'P2002') {
-        throw new BadRequestException({
-          statusCode: HttpStatus.BAD_REQUEST,
-          message: 'Error updating user: Duplicate value found',
-        });
-      } else {
-        throw new NotFoundException({
-          statusCode: HttpStatus.NOT_FOUND,
-          message: `User with id ${userId} not found`,
-        });
+    } catch (error) {
+      if (error instanceof BadRequestException || error instanceof NotFoundException) {
+        throw error;
       }
-    }
-  }
-
-  async updateRole(updateUserRoleDto: UpdateUserRoleDto): Promise<IReceivedData<User>> {
-    try {
-      const updatedUser = await this.prisma.user.update({
-        where: { id: updateUserRoleDto.userId },
-        data: {
-          role: updateUserRoleDto.newRole,
-        },
-      });
-      return {
-        statusCode: HttpStatus.OK,
-        message: 'User role updated successfully',
-        count: 1,
-        result: updatedUser,
-      };
-    } catch (error: unknown) {
-      if ((error as PostgrestError).code === 'P2002') {
-        throw new BadRequestException({
-          statusCode: HttpStatus.BAD_REQUEST,
-          message: 'Error updating user role: Duplicate value found',
-        });
-      }
-      throw new NotFoundException({
-        statusCode: HttpStatus.NOT_FOUND,
-        message: `User with id ${updateUserRoleDto.userId} not found`,
-      });
-    }
-  }
-
-  async remove(userId: string): Promise<IReceivedData<{ userId: User['id'] }>> {
-    try {
-      await this.prisma.user.delete({
-        where: { id: userId },
-      });
-
-      await supabase.auth.admin.deleteUser(userId);
-
-      return {
-        result: { userId },
-        statusCode: HttpStatus.OK,
-        message: 'User deleted successfully',
-      };
-    } catch {
-      throw new NotFoundException({
-        statusCode: HttpStatus.NOT_FOUND,
-        message: `User with id ${userId} not found`,
+      throw new BadRequestException({
+        statusCode: HttpStatus.BAD_REQUEST,
+        message: 'Error updating user',
       });
     }
   }

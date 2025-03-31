@@ -1,9 +1,9 @@
 import { BadRequestException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
 import { Transaction } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
-import { PostgrestError } from '@supabase/supabase-js';
 import { PrismaService } from 'prisma/prisma.service';
 import { IReceivedData } from 'src/interceptors/response.interceptor';
+import { calculateInstallmentDates } from 'src/utils/transactions';
 import {
   CreateTransactionDto,
   FindAllTransactionsDto,
@@ -40,8 +40,48 @@ export class TransactionsService {
     });
   }
 
+  private calculateInstallments(
+    amount: Decimal,
+    installments: number,
+    installmentValues: Decimal[] | undefined,
+  ): Decimal[] {
+    const calculatedInstallments: Decimal[] = Array(installments)
+      .fill(amount.div(installments))
+      .map((value, index, array) => {
+        if (index === array.length - 1) {
+          const previousInstallments = array.slice(0, -1);
+          if (previousInstallments.length === 0) {
+            return amount;
+          }
+          const sumPreviousInstallments = Decimal.sum(...previousInstallments);
+          return amount.minus(sumPreviousInstallments);
+        }
+        return value as Decimal;
+      });
+
+    return (installmentValues ?? calculatedInstallments).map((value) => new Decimal(value));
+  }
+
+  private validateInstallments(amount: Decimal, installments: Decimal[]): void {
+    const totalInstallments = installments.reduce((sum, value) => sum.plus(value), new Decimal(0));
+
+    if (installments.length !== totalInstallments.toNumber()) {
+      const difference = amount.minus(totalInstallments);
+      installments[installments.length - 1] = installments[installments.length - 1].plus(difference);
+    }
+
+    if (
+      installments.some((value) => value.lte(0) || value.isNaN()) ||
+      !installments.reduce((sum, value) => sum.plus(value), new Decimal(0)).equals(amount)
+    ) {
+      throw new BadRequestException(
+        `Invalid installment values. Ensure all values are positive, valid numbers, and their sum equals the total amount (${amount.toString()})`,
+      );
+    }
+  }
+
   async findAll(userId: string, filters: FindAllTransactionsDto): Promise<IReceivedData<Transaction[]>> {
-    const { purchaseName, ...restOfTheFilters } = filters;
+    const { purchaseName, installmentDates, ...restOfTheFilters } = filters;
 
     try {
       const transactionCount = await this.prisma.transaction.count({
@@ -50,6 +90,7 @@ export class TransactionsService {
           AND: {
             ...restOfTheFilters,
             purchaseName: purchaseName ? { contains: purchaseName, mode: 'insensitive' } : undefined,
+            installmentDates: installmentDates ? { hasSome: installmentDates } : undefined,
             card: restOfTheFilters.card ? { id: restOfTheFilters.card } : undefined,
             dependent: restOfTheFilters.dependent ? { id: restOfTheFilters.dependent } : undefined,
           },
@@ -63,7 +104,20 @@ export class TransactionsService {
             ...restOfTheFilters,
             purchaseName: purchaseName ? { contains: purchaseName, mode: 'insensitive' } : undefined,
             card: restOfTheFilters.card ? { id: restOfTheFilters.card } : undefined,
+            installmentDates: installmentDates ? { hasSome: installmentDates } : undefined,
             dependent: restOfTheFilters.dependent ? { id: restOfTheFilters.dependent } : undefined,
+          },
+        },
+        include: {
+          card: {
+            select: {
+              name: true,
+            },
+          },
+          dependent: {
+            select: {
+              name: true,
+            },
           },
         },
       });
@@ -71,74 +125,25 @@ export class TransactionsService {
       if (transactions.length === 0) {
         throw new NotFoundException({
           statusCode: HttpStatus.NOT_FOUND,
-          message: 'No transactions found for this user',
           count: 0,
+          message: 'No transactions found for this user',
           data: null,
         });
       }
 
       return {
         statusCode: HttpStatus.OK,
-        message: 'Transactions retrieved successfully',
         count: transactionCount,
+        message: 'Transactions retrieved successfully',
         result: transactions,
       };
-    } catch {
-      throw new BadRequestException({
-        statusCode: HttpStatus.BAD_REQUEST,
-        message: 'Failed to retrieve transactions',
-      });
-    }
-  }
-
-  async findOne(userId: string, filters: FindOneTransactionDto): Promise<IReceivedData<Transaction>> {
-    if (!filters.id && !filters.purchaseName) {
-      throw new BadRequestException({
-        statusCode: HttpStatus.BAD_REQUEST,
-        message: 'Please provide an id or purchaseName to search for',
-      });
-    }
-
-    try {
-      const transaction = await this.prisma.transaction.findFirst({
-        where: {
-          userId,
-          AND: {
-            ...filters,
-            id: filters.id ? { equals: filters.id } : undefined,
-            purchaseName: filters.purchaseName
-              ? { contains: filters.purchaseName, mode: 'insensitive' }
-              : undefined,
-            description: filters.description
-              ? { contains: filters.description, mode: 'insensitive' }
-              : undefined,
-            installments: filters.installments ? { equals: parseInt(filters.installments) } : undefined,
-          },
-        },
-      });
-
-      if (!transaction) {
-        throw new NotFoundException({
-          statusCode: HttpStatus.NOT_FOUND,
-          message: `Transaction not found for user with id ${userId}`,
-          count: 0,
-          data: null,
-        });
-      }
-
-      return {
-        statusCode: HttpStatus.OK,
-        message: 'Transaction retrieved successfully',
-        count: 1,
-        result: transaction,
-      };
     } catch (error) {
-      if (error instanceof NotFoundException) {
+      if (error instanceof BadRequestException || error instanceof NotFoundException) {
         throw error;
       }
       throw new BadRequestException({
         statusCode: HttpStatus.BAD_REQUEST,
-        message: 'Failed to retrieve transaction',
+        message: 'Error creating transaction',
       });
     }
   }
@@ -147,23 +152,39 @@ export class TransactionsService {
     userId: string,
     createTransactionDto: CreateTransactionDto,
   ): Promise<IReceivedData<Transaction>> {
-    const { amount, installments, installmentValues, ...rest } = createTransactionDto;
+    const { amount, installments, installmentValues, cardId, dependentId, purchaseDate, ...rest } =
+      createTransactionDto;
 
-    if (installmentValues.length !== installments) {
-      throw new BadRequestException(
-        `Número de parcelas (${installments}) não bate com os valores informados (${installmentValues.length})`,
-      );
-    }
+    const amountDecimal = new Decimal(amount);
+    const transactionDate = purchaseDate ? new Date(purchaseDate) : new Date();
 
-    const totalInstallments = installmentValues.reduce(
-      (sum, value) => sum.plus(new Decimal(value)),
-      new Decimal(0),
+    const finalInstallmentValues = this.calculateInstallments(
+      amountDecimal,
+      installments,
+      installmentValues && installmentValues.length > 0
+        ? installmentValues.map((installmentValue) => new Decimal(installmentValue))
+        : undefined,
     );
 
-    if (!totalInstallments.equals(new Decimal(amount))) {
-      throw new BadRequestException(
-        `A soma das parcelas (${totalInstallments.toString()}) deve ser igual ao valor total da compra (${amount})`,
-      );
+    this.validateInstallments(amountDecimal, finalInstallmentValues);
+
+    const card = await this.prisma.card.findUnique({ where: { id: cardId } });
+
+    if (!card) {
+      throw new BadRequestException(`Card not found`);
+    }
+
+    const installmentDates = calculateInstallmentDates(transactionDate, card.payDay, installments);
+
+    const existingTransaction = await this.prisma.transaction.findUnique({
+      where: { purchaseName_amount: { purchaseName: rest.purchaseName, amount: amountDecimal } },
+    });
+
+    if (existingTransaction) {
+      throw new BadRequestException({
+        statusCode: HttpStatus.BAD_REQUEST,
+        message: 'Transaction with the same name and value already exists',
+      });
     }
 
     try {
@@ -171,9 +192,13 @@ export class TransactionsService {
         data: {
           ...rest,
           userId,
-          amount: new Decimal(amount),
+          cardId,
+          dependentId: dependentId ?? userId,
+          amount: amountDecimal,
           installments,
-          date: new Date(rest.date),
+          purchaseDate: transactionDate,
+          installmentDates,
+          installmentsValue: finalInstallmentValues.map((v) => v.toString()),
         },
       });
 
@@ -185,17 +210,74 @@ export class TransactionsService {
         result: transaction,
       };
     } catch (error: unknown) {
-      if ((error as PostgrestError).code === 'P2002') {
-        throw new BadRequestException({
-          statusCode: HttpStatus.BAD_REQUEST,
-          message: 'Error transaction card: Duplicate value found',
-        });
-      } else {
-        throw new BadRequestException({
-          statusCode: HttpStatus.BAD_REQUEST,
-          message: 'Error creating transaction',
+      if (error instanceof BadRequestException || error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new BadRequestException({
+        statusCode: HttpStatus.BAD_REQUEST,
+        message: 'Error creating transaction',
+      });
+    }
+  }
+
+  async findOne(userId: string, filters: FindOneTransactionDto): Promise<IReceivedData<Transaction>> {
+    if (Object.values(filters).every((value) => value === undefined)) {
+      throw new BadRequestException({
+        statusCode: HttpStatus.BAD_REQUEST,
+        message: 'Please provide at least one parameter to search for a transaction',
+      });
+    }
+
+    try {
+      const transaction = await this.prisma.transaction.findFirst({
+        where: {
+          userId,
+          AND: {
+            ...filters,
+            id: filters.id ? filters.id : undefined,
+            purchaseName: filters.purchaseName ? filters.purchaseName : undefined,
+            description: filters.description
+              ? { contains: filters.description, mode: 'insensitive' }
+              : undefined,
+          },
+        },
+        include: {
+          card: {
+            select: {
+              name: true,
+            },
+          },
+          dependent: {
+            select: {
+              name: true,
+            },
+          },
+        },
+      });
+
+      if (!transaction) {
+        throw new NotFoundException({
+          statusCode: HttpStatus.NOT_FOUND,
+          count: 0,
+          message: `Transaction not found for user with id ${userId}`,
+          data: null,
         });
       }
+
+      return {
+        statusCode: HttpStatus.OK,
+        count: 1,
+        message: 'Transaction retrieved successfully',
+        result: transaction,
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException || error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new BadRequestException({
+        statusCode: HttpStatus.BAD_REQUEST,
+        message: 'Failed to retrieve transaction',
+      });
     }
   }
 
@@ -213,10 +295,49 @@ export class TransactionsService {
         throw new NotFoundException(`Transaction with id ${transactionId} not found`);
       }
 
+      const newAmountDecimal = new Decimal(updateTransactionDto.amount ?? existingTransaction.amount);
+      const amountChanged = !newAmountDecimal.equals(existingTransaction.amount);
+
+      let finalInstallmentValues: Decimal[] = existingTransaction.installmentsValue.map(
+        (value) => new Decimal(value),
+      );
+      let installmentDates = existingTransaction.installmentDates;
+
+      if (amountChanged) {
+        finalInstallmentValues = this.calculateInstallments(
+          newAmountDecimal,
+          updateTransactionDto.installments ?? existingTransaction.installments,
+          updateTransactionDto.installmentValues && updateTransactionDto.installmentValues.length > 0
+            ? updateTransactionDto.installmentValues.map((installmentValue) => new Decimal(installmentValue))
+            : undefined,
+        );
+
+        this.validateInstallments(newAmountDecimal, finalInstallmentValues);
+
+        const transactionDate = updateTransactionDto.purchaseDate
+          ? new Date(updateTransactionDto.purchaseDate)
+          : new Date();
+        const card = await this.prisma.card.findUnique({
+          where: { id: existingTransaction.cardId },
+        });
+        if (!card) {
+          throw new NotFoundException('Card not found');
+        }
+
+        installmentDates = calculateInstallmentDates(
+          transactionDate,
+          card.payDay,
+          updateTransactionDto.installments ?? existingTransaction.installments,
+        );
+      }
+
       const updatedTransaction = await this.prisma.transaction.update({
         where: { id: transactionId },
         data: {
           ...updateTransactionDto,
+          amount: newAmountDecimal,
+          installmentsValue: finalInstallmentValues.map((v) => v.toString()),
+          installmentDates,
         },
       });
 
@@ -224,22 +345,18 @@ export class TransactionsService {
 
       return {
         statusCode: HttpStatus.OK,
-        message: 'Transaction updated successfully',
         count: 1,
+        message: 'Transaction updated successfully',
         result: updatedTransaction,
       };
-    } catch (error: unknown) {
-      if ((error as PostgrestError).code === 'P2002') {
-        throw new BadRequestException({
-          statusCode: HttpStatus.BAD_REQUEST,
-          message: 'Error updating transaction: Duplicate value found',
-        });
-      } else {
-        throw new NotFoundException({
-          statusCode: HttpStatus.NOT_FOUND,
-          message: `Transaction with id ${userId} not found`,
-        });
+    } catch (error) {
+      if (error instanceof BadRequestException || error instanceof NotFoundException) {
+        throw error;
       }
+      throw new BadRequestException({
+        statusCode: HttpStatus.BAD_REQUEST,
+        message: 'Error updating transaction',
+      });
     }
   }
 
@@ -264,6 +381,7 @@ export class TransactionsService {
       result: { transactionId },
       statusCode: HttpStatus.OK,
       message: 'Transaction deleted successfully',
+      count: 1,
     };
   }
 }

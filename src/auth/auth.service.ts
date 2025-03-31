@@ -1,16 +1,80 @@
-import { BadRequestException, HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  HttpException,
+  HttpStatus,
+  Injectable,
+} from '@nestjs/common';
 import { Role, User } from '@prisma/client';
 import { Session } from '@supabase/supabase-js';
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { PrismaService } from 'prisma/prisma.service';
 import { defaultCategories } from 'src/constants/categories';
 import { IReceivedData } from 'src/interceptors/response.interceptor';
+import { UpdateUserDto } from 'src/user/dto/user.dto';
 import { LoginDto, SignupDto } from './dto/auth.dto';
 import { supabase } from './supabase.client';
 
 @Injectable()
 export class AuthService {
   constructor(private prisma: PrismaService) {}
+
+  async signIn(payload: LoginDto, res: Response): Promise<IReceivedData<Session>> {
+    const { email, password } = payload;
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        throw new HttpException(`Login failed: ${error.message}`, HttpStatus.UNAUTHORIZED);
+      }
+
+      if (!data.session) {
+        throw new HttpException('Invalid session', HttpStatus.UNAUTHORIZED);
+      }
+
+      const { access_token } = data.session;
+
+      res.cookie('auth_token', access_token, {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'strict',
+        maxAge: 60 * 60 * 1000,
+      });
+
+      return {
+        message: 'Login successful',
+        result: data.session,
+        statusCode: HttpStatus.OK,
+      };
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      } else {
+        throw new HttpException('Error logging in', HttpStatus.INTERNAL_SERVER_ERROR);
+      }
+    }
+  }
+
+  async signOut(res: Response): Promise<Omit<IReceivedData, 'result'>> {
+    const { error } = await supabase.auth.signOut();
+
+    if (error) {
+      throw new BadRequestException({
+        statusCode: HttpStatus.BAD_REQUEST,
+        message: `Error logging out: ${error.message}`,
+      });
+    }
+
+    res.clearCookie('auth_token');
+
+    return {
+      statusCode: HttpStatus.OK,
+      message: 'Logout successful',
+    };
+  }
 
   private async signUpUserWithRole(payload: SignupDto, role: Role): Promise<IReceivedData<User>> {
     const { email, password, name, phone } = payload;
@@ -25,12 +89,18 @@ export class AuthService {
     });
 
     if (error) {
-      throw new HttpException(`Error signing up: ${error.message}`, HttpStatus.BAD_REQUEST);
+      throw new BadRequestException({
+        statusCode: HttpStatus.BAD_REQUEST,
+        message: `Error signing up: ${error.message}`,
+      });
     }
 
     const user = data.user;
     if (!user) {
-      throw new HttpException('Error retrieving user from Supabase', HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new BadRequestException({
+        statusCode: HttpStatus.BAD_REQUEST,
+        message: 'Error retrieving user from Supabase',
+      });
     }
 
     try {
@@ -40,6 +110,7 @@ export class AuthService {
           email,
           name,
           phone,
+          role,
           dependents: {
             create: {
               name,
@@ -53,14 +124,19 @@ export class AuthService {
       });
 
       return {
-        message: `${role} successfully created`,
-        count: 1,
-        result: newUser,
         statusCode: HttpStatus.CREATED,
+        count: 1,
+        message: `${role} successfully created`,
+        result: newUser,
       };
-    } catch {
-      await supabase.auth.admin.deleteUser(user.id);
-      throw new HttpException('Error saving user to the database', HttpStatus.INTERNAL_SERVER_ERROR);
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new BadRequestException({
+        statusCode: HttpStatus.BAD_REQUEST,
+        message: 'Error singing up user',
+      });
     }
   }
 
@@ -76,71 +152,79 @@ export class AuthService {
     return this.signUpUserWithRole(payload, 'SUPER_ADMIN');
   }
 
-  async signIn(payload: LoginDto, res: Response): Promise<IReceivedData<Session>> {
-    const { email, password } = payload;
+  async deleteUser(userId: string, res: Response) {
+    try {
+      if (!userId) {
+        throw new BadRequestException({
+          statusCode: HttpStatus.BAD_REQUEST,
+          message: 'User ID is required.',
+        });
+      }
 
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+      const { error } = await supabase.auth.admin.deleteUser(userId);
 
-    if (error) {
-      throw new HttpException(`Login failed: ${error.message}`, HttpStatus.UNAUTHORIZED);
-    }
+      if (error) {
+        if (error.message.includes('User not allowed')) {
+          throw new ForbiddenException({
+            statusCode: HttpStatus.FORBIDDEN,
+            message: 'You are not allowed to delete this user.',
+          });
+        }
 
-    if (!data.session) {
-      throw new HttpException('Invalid session', HttpStatus.UNAUTHORIZED);
-    }
+        throw new BadRequestException({
+          statusCode: HttpStatus.BAD_REQUEST,
+          message: `Error deleting user: ${error.message}`,
+        });
+      }
 
-    const { access_token } = data.session;
+      res.clearCookie('auth_token');
 
-    res.cookie('auth_token', access_token, {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
-
-    return {
-      message: 'Login successful',
-      result: data.session,
-      statusCode: HttpStatus.OK,
-    };
-  }
-
-  async signOut(userId: User['id']): Promise<IReceivedData<{ userId: User['id'] }>> {
-    const { error } = await supabase.auth.signOut();
-
-    if (error) {
+      return { message: 'User successfully deleted.' };
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
       throw new BadRequestException({
         statusCode: HttpStatus.BAD_REQUEST,
-        message: `Error logging out: ${error.message}`,
+        message: 'Error deleting user',
       });
     }
-
-    return {
-      result: {
-        userId,
-      },
-      statusCode: HttpStatus.OK,
-      message: 'Logout successful',
-    };
   }
 
-  check(req: Request): IReceivedData<{ isAuthenticated: boolean }> {
-    const token = req.cookies['auth_token'];
+  async updateUser(userId: string, updatedUser: UpdateUserDto) {
+    try {
+      if (!userId) {
+        throw new BadRequestException({
+          statusCode: HttpStatus.BAD_REQUEST,
+          message: 'User ID is required.',
+        });
+      }
 
-    if (!token) {
-      return {
-        statusCode: HttpStatus.UNAUTHORIZED,
-        message: 'Unauthorized',
-        result: { isAuthenticated: false },
-      };
+      const { error } = await supabase.auth.admin.updateUserById(userId, updatedUser);
+
+      if (error) {
+        if (error.message.includes('User not allowed')) {
+          throw new ForbiddenException({
+            statusCode: HttpStatus.FORBIDDEN,
+            message: 'You are not allowed to update this user.',
+          });
+        }
+
+        throw new BadRequestException({
+          statusCode: HttpStatus.BAD_REQUEST,
+          message: `Error updating user: ${error.message}`,
+        });
+      }
+
+      return { message: 'User successfully updated.' };
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new BadRequestException({
+        statusCode: HttpStatus.BAD_REQUEST,
+        message: 'Error deleting user',
+      });
     }
-    return {
-      statusCode: HttpStatus.OK,
-      message: 'Authorized',
-      result: { isAuthenticated: true },
-    };
   }
 }

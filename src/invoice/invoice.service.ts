@@ -1,6 +1,5 @@
 import { BadRequestException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
 import { Invoice, Transaction } from '@prisma/client';
-import { PostgrestError } from '@supabase/supabase-js';
 import { PrismaService } from 'prisma/prisma.service';
 import { IReceivedData } from 'src/interceptors/response.interceptor';
 
@@ -12,8 +11,8 @@ export class InvoiceService {
     const invoicesMap = new Map<string, { totalAmount: number }>();
 
     transactions.forEach((transaction) => {
-      const { date, installments, installmentsValue, amount, cardId, userId } = transaction;
-      const transactionDate = new Date(date);
+      const { installments, installmentsValue, amount, cardId, userId, purchaseDate } = transaction;
+      const transactionDate = new Date(purchaseDate);
 
       for (let i = 0; i < installments; i++) {
         const month = transactionDate.getMonth() + 1;
@@ -35,36 +34,6 @@ export class InvoiceService {
     return invoicesMap;
   }
 
-  async updateManyInvoices(): Promise<IReceivedData<{ invoicesIds: Invoice['id'][] }>> {
-    try {
-      const transactions = await this.prisma.transaction.findMany({
-        include: { card: true },
-      });
-
-      const invoicesMap = this.calculateInvoices(transactions);
-
-      await this.upsertInvoices(invoicesMap);
-
-      return {
-        result: { invoicesIds: Array.from(invoicesMap.keys()) },
-        statusCode: HttpStatus.CREATED,
-        message: 'Invoices updated!',
-      };
-    } catch (error: unknown) {
-      if ((error as PostgrestError).code === 'P2002') {
-        throw new BadRequestException({
-          statusCode: HttpStatus.BAD_REQUEST,
-          message: 'Error updating invoices: Duplicate value found',
-        });
-      } else {
-        throw new NotFoundException({
-          statusCode: HttpStatus.NOT_FOUND,
-          message: 'Error updating invoices',
-        });
-      }
-    }
-  }
-
   private async upsertInvoices(invoicesMap: Map<string, { totalAmount: number }>) {
     for (const [key, { totalAmount }] of invoicesMap) {
       const [cardId, userId, month, year] = key.split('-');
@@ -79,6 +48,42 @@ export class InvoiceService {
           totalAmount,
           dueDate: new Date(Number(year), Number(month) - 1, 5),
         },
+      });
+    }
+  }
+
+  async updateManyInvoices(): Promise<IReceivedData<{ invoicesIds: Invoice['id'][] }>> {
+    try {
+      const transactions = await this.prisma.transaction.findMany({
+        include: { card: true },
+      });
+
+      if (!transactions || transactions.length === 0) {
+        throw new BadRequestException({
+          statusCode: HttpStatus.BAD_REQUEST,
+          message: 'No transactions found to update invoices',
+        });
+      }
+
+      const invoicesMap = this.calculateInvoices(transactions);
+
+      await this.upsertInvoices(invoicesMap);
+
+      const invoiceIdsArray = Array.from(invoicesMap.keys());
+
+      return {
+        result: { invoicesIds: invoiceIdsArray },
+        statusCode: HttpStatus.CREATED,
+        message: 'Invoices updated with success',
+        count: invoiceIdsArray.length,
+      };
+    } catch (error) {
+      if (error instanceof BadRequestException || error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new BadRequestException({
+        statusCode: HttpStatus.BAD_REQUEST,
+        message: 'Error updating invoices',
       });
     }
   }
@@ -98,18 +103,21 @@ export class InvoiceService {
       if (invoices.length === 0) {
         throw new NotFoundException({
           statusCode: HttpStatus.NOT_FOUND,
-          message: 'No invoices found for this user',
           count: 0,
+          message: 'No invoices found for this user',
           data: null,
         });
       }
       return {
         statusCode: HttpStatus.OK,
-        message: 'Invoices retrieved successfully',
         count: invoicesCount,
+        message: 'Invoices retrieved successfully',
         result: invoices,
       };
-    } catch {
+    } catch (error) {
+      if (error instanceof BadRequestException || error instanceof NotFoundException) {
+        throw error;
+      }
       throw new BadRequestException({
         statusCode: HttpStatus.BAD_REQUEST,
         message: 'Failed to retrieve invoices',

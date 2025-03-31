@@ -1,6 +1,5 @@
 import { BadRequestException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
 import { Dependent } from '@prisma/client';
-import { PostgrestError } from '@supabase/supabase-js';
 import { PrismaService } from 'prisma/prisma.service';
 import { IReceivedData } from 'src/interceptors/response.interceptor';
 import {
@@ -16,7 +15,7 @@ export class DependentsService {
 
   async findAll(userId: string, filters: FindAllDependentsDto): Promise<IReceivedData<Dependent[]>> {
     try {
-      const { name, ...restOfTheFilters } = filters;
+      const { name, dependentId, ...restOfTheFilters } = filters;
       const dependentsCount = await this.prisma.dependent.count({
         where: {
           userId,
@@ -39,6 +38,7 @@ export class DependentsService {
               contains: name,
               mode: 'insensitive',
             },
+            id: dependentId,
           },
         },
       });
@@ -46,66 +46,24 @@ export class DependentsService {
       if (dependents.length === 0) {
         throw new NotFoundException({
           statusCode: HttpStatus.NOT_FOUND,
-          message: 'No dependents found for this user',
           count: 0,
+          message: 'No dependents found for this user',
           data: null,
         });
       }
       return {
         statusCode: HttpStatus.OK,
-        message: 'Dependents retrieved successfully',
         count: dependentsCount,
+        message: 'Dependents retrieved successfully',
         result: dependents,
       };
-    } catch {
-      throw new BadRequestException({
-        statusCode: HttpStatus.BAD_REQUEST,
-        message: 'Failed to retrieve dependents',
-      });
-    }
-  }
-
-  async findOne(userId: string, filters: FindOneDependentDto): Promise<IReceivedData<Dependent>> {
-    if (!filters.id && !filters.name) {
-      throw new BadRequestException({
-        statusCode: HttpStatus.BAD_REQUEST,
-        message: 'Please provide an id or name to search for',
-      });
-    }
-
-    try {
-      const dependent = await this.prisma.dependent.findUnique({
-        where: {
-          id: userId,
-          AND: {
-            id: { equals: filters.id },
-            name: { contains: filters.name, mode: 'insensitive' },
-          },
-        },
-      });
-
-      if (!dependent) {
-        throw new NotFoundException({
-          statusCode: HttpStatus.NOT_FOUND,
-          message: `Dependent not found for user with id ${userId}`,
-          count: 0,
-          data: null,
-        });
-      }
-
-      return {
-        statusCode: HttpStatus.OK,
-        message: 'Dependent retrieved successfully',
-        count: 1,
-        result: dependent,
-      };
     } catch (error) {
-      if (error instanceof NotFoundException) {
+      if (error instanceof BadRequestException || error instanceof NotFoundException) {
         throw error;
       }
       throw new BadRequestException({
         statusCode: HttpStatus.BAD_REQUEST,
-        message: 'Failed to retrieve dependent',
+        message: 'Error creating dependent',
       });
     }
   }
@@ -123,8 +81,8 @@ export class DependentsService {
         });
       }
 
-      const existingDependent = await this.prisma.dependent.findFirst({
-        where: { name: createDependentDto.name },
+      const existingDependent = await this.prisma.dependent.findUnique({
+        where: { name_userId: { name: createDependentDto.name, userId } },
       });
 
       if (existingDependent) {
@@ -143,22 +101,63 @@ export class DependentsService {
 
       return {
         statusCode: HttpStatus.CREATED,
-        message: 'Dependent created successfully',
         count: 1,
+        message: 'Dependent created successfully',
         result: dependent,
       };
     } catch (error) {
-      if ((error as PostgrestError).code === 'P2002') {
-        throw new BadRequestException({
-          statusCode: HttpStatus.BAD_REQUEST,
-          message: 'Error creating dependent: Duplicate value found',
-        });
-      } else {
-        throw new BadRequestException({
-          statusCode: HttpStatus.BAD_REQUEST,
-          message: 'Error creating dependent',
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new BadRequestException({
+        statusCode: HttpStatus.BAD_REQUEST,
+        message: 'Error creating dependent',
+      });
+    }
+  }
+
+  async findOne(userId: string, filters: FindOneDependentDto): Promise<IReceivedData<Dependent>> {
+    if (!filters.id && !filters.name) {
+      throw new BadRequestException({
+        statusCode: HttpStatus.BAD_REQUEST,
+        message: 'Please provide an id or name to search for',
+      });
+    }
+
+    try {
+      const dependent = await this.prisma.dependent.findFirst({
+        where: {
+          userId,
+          AND: {
+            id: { equals: filters.id },
+            name: { equals: filters.name, mode: 'insensitive' },
+          },
+        },
+      });
+
+      if (!dependent) {
+        throw new NotFoundException({
+          statusCode: HttpStatus.NOT_FOUND,
+          count: 0,
+          message: `Dependent not found for user with id ${userId}`,
+          data: null,
         });
       }
+
+      return {
+        statusCode: HttpStatus.OK,
+        count: 1,
+        message: 'Dependent retrieved successfully',
+        result: dependent,
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new BadRequestException({
+        statusCode: HttpStatus.BAD_REQUEST,
+        message: 'Failed to retrieve dependent',
+      });
     }
   }
 
@@ -183,22 +182,18 @@ export class DependentsService {
 
       return {
         statusCode: 200,
-        message: 'Dependent updated successfully',
         count: 1,
+        message: 'Dependent updated successfully',
         result: updatedDependent,
       };
     } catch (error: unknown) {
-      if ((error as PostgrestError).code === 'P2002') {
-        throw new BadRequestException({
-          statusCode: HttpStatus.BAD_REQUEST,
-          message: 'Error updating dependent: Duplicate value found',
-        });
-      } else {
-        throw new NotFoundException({
-          statusCode: HttpStatus.NOT_FOUND,
-          message: `Dependent with id ${userId} not found`,
-        });
+      if (error instanceof BadRequestException || error instanceof NotFoundException) {
+        throw error;
       }
+      throw new BadRequestException({
+        statusCode: HttpStatus.BAD_REQUEST,
+        message: 'Error creating dependent',
+      });
     }
   }
 
@@ -219,6 +214,11 @@ export class DependentsService {
 
     await this.prisma.dependent.delete({ where: { id: dependentId } });
 
-    return { result: { dependentId }, statusCode: HttpStatus.OK, message: 'Dependent deleted successfully' };
+    return {
+      result: { dependentId },
+      statusCode: HttpStatus.OK,
+      message: 'Dependent deleted successfully',
+      count: 1,
+    };
   }
 }
