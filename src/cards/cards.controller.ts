@@ -66,7 +66,9 @@ export class CardsController {
   }
 
   @Get('/search')
-  @ApiOperation({ summary: 'Retrieve a single card based on id or name. At least one parameter is required' })
+  @ApiOperation({
+    summary: 'Retrieve a single card based on id, name or bank. At least one parameter is required',
+  })
   @ApiOkResponse({ type: ResultFindOneCardDto })
   @ApiNotFoundResponse({ type: ResponseNotFoundDto })
   @ApiQuery({ name: 'id', required: false, description: 'Card ID' })
@@ -84,7 +86,7 @@ export class CardsController {
   }
 
   @Patch(':id')
-  @ApiOperation({ summary: 'Update an existing card' })
+  @ApiOperation({ summary: 'Update an existing card for the authenticated user' })
   @ApiOkResponse({ type: ResultUpdateCardDto })
   @ApiParam({ name: 'id', required: true, description: 'Card ID' })
   async update(
@@ -97,7 +99,7 @@ export class CardsController {
   }
 
   @Delete(':id')
-  @ApiOperation({ summary: 'Delete a card' })
+  @ApiOperation({ summary: 'Delete a card for the authenticated user' })
   @ApiOkResponse({ type: ResultDeleteCardDto })
   @ApiParam({ name: 'id', required: true, description: 'Card ID' })
   async remove(@Req() req: RequestWithUser, @Param('id') cardId: string) {

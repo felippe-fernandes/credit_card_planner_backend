@@ -80,7 +80,7 @@ export class TransactionsController {
   }
 
   @Post()
-  @ApiOperation({ summary: 'Create a new transaction' })
+  @ApiOperation({ summary: 'Create a new transaction for the authenticated user' })
   @ApiCreatedResponse({ type: ResultCreateTransactionDto })
   async create(@Req() req: RequestWithUser, @Body() createTransactionDto: CreateTransactionDto) {
     const userId = req.user.id;
@@ -88,7 +88,7 @@ export class TransactionsController {
   }
 
   @Get('/search')
-  @ApiOperation({ summary: 'Retrieve a transaction by ID' })
+  @ApiOperation({ summary: 'Retrieve a transaction for the authenticated user' })
   @ApiOkResponse({ type: ResultFindOneTransactionDto })
   @ApiNotFoundResponse({ type: ResponseNotFoundDto })
   @ApiQuery({ name: 'id', required: false, description: 'Transaction ID' })
@@ -122,7 +122,7 @@ export class TransactionsController {
   }
 
   @Put(':id')
-  @ApiOperation({ summary: 'Update a transaction' })
+  @ApiOperation({ summary: 'Update a transaction for the authenticated user' })
   @ApiOkResponse({ type: ResultUpdateTransactionDto })
   @ApiParam({ name: 'id', required: true, description: 'Transaction ID' })
   async update(
@@ -135,7 +135,7 @@ export class TransactionsController {
   }
 
   @Delete(':id')
-  @ApiOperation({ summary: 'Delete a transaction' })
+  @ApiOperation({ summary: 'Delete a transaction for the authenticated user' })
   @ApiOkResponse({ type: ResultDeleteTransactionDto })
   @ApiParam({ name: 'id', required: true, description: 'Transaction ID' })
   async remove(@Req() req: RequestWithUser, @Param('id') transactionId: string) {

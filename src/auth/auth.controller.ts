@@ -33,7 +33,7 @@ export class AuthController {
   }
 
   @Post('signout')
-  @ApiOperation({ summary: 'Login a user' })
+  @ApiOperation({ summary: 'Logout a user' })
   @ApiCreatedResponse({ type: ResponseCreatedDto })
   async signOut(@Req() req: RequestWithUser, @Res({ passthrough: true }) response: Response) {
     return await this.authService.signOut(response);
