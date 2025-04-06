@@ -52,7 +52,7 @@ export class UserController {
 
   @Get()
   @Roles('SUPER_ADMIN')
-  @ApiOperation({ summary: 'Get all users' })
+  @ApiOperation({ summary: 'Get all users. For SUPER_ADMIN only' })
   @ApiOkResponse({ type: ResultFindAllUsersDto })
   @ApiNotFoundResponse({ type: ResponseNotFoundDto })
   findAll() {
@@ -61,7 +61,7 @@ export class UserController {
 
   @Put('change-role')
   @Roles('SUPER_ADMIN')
-  @ApiOperation({ summary: "Change a user's role" })
+  @ApiOperation({ summary: "Change a user's role. For SUPER_ADMIN only" })
   @ApiBody({ type: UpdateUserRoleDto })
   @ApiOkResponse({ type: ResultUpdateUserRoleDto })
   updateRole(@Body() updateUserDto: UpdateUserRoleDto) {
@@ -70,7 +70,7 @@ export class UserController {
 
   @Delete('delete/:id')
   @Roles('SUPER_ADMIN')
-  @ApiOperation({ summary: 'Delete a user by ID' })
+  @ApiOperation({ summary: 'Delete a user by ID. For SUPER_ADMIN only' })
   @ApiOkResponse({ type: ResultDeleteUserDto })
   @ApiParam({ name: 'userId', type: String, description: 'User ID' })
   async deleteUser(@Param('userId') userId: string, @Res({ passthrough: true }) response: Response) {
@@ -88,7 +88,7 @@ export class UserController {
 
   @Patch('edit/:id')
   @Roles('SUPER_ADMIN')
-  @ApiOperation({ summary: 'Update a user by ID' })
+  @ApiOperation({ summary: 'Update a user by ID. For SUPER_ADMIN only' })
   @ApiOkResponse({ type: ResultUpdateUserRoleDto })
   @ApiParam({ name: 'userId', type: String, description: 'User ID' })
   async updateUser(@Param('userId') userId: string, @Body() updateUserDto: UpdateUserDto) {
@@ -96,7 +96,7 @@ export class UserController {
   }
 
   @Get('me')
-  @ApiOperation({ summary: 'Get current logged in user' })
+  @ApiOperation({ summary: 'Get current authenticated user' })
   @ApiOkResponse({ type: ResultFindOneUserDto })
   @ApiNotFoundResponse({ type: ResponseNotFoundDto })
   findMe(@Req() req: RequestWithUser) {
@@ -104,7 +104,7 @@ export class UserController {
   }
 
   @Patch('me')
-  @ApiOperation({ summary: 'Update current logged in user' })
+  @ApiOperation({ summary: 'Update current authenticated user' })
   @ApiBody({ type: UpdateUserDto })
   @ApiOkResponse({ type: ResultUpdateUserRoleDto })
   @ApiBody({ type: UpdateUserDto })
@@ -113,7 +113,7 @@ export class UserController {
   }
 
   @Delete('me')
-  @ApiOperation({ summary: 'Delete current logged in user' })
+  @ApiOperation({ summary: 'Delete current authenticated user' })
   @ApiOkResponse({ type: ResultDeleteUserDto })
   async remove(@Req() req: RequestWithUser, @Res() res: Response) {
     const userId = req.user.id;
