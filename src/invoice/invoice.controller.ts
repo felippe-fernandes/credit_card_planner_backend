@@ -21,14 +21,14 @@ export class InvoiceController {
   constructor(private readonly invoiceService: InvoiceService) {}
 
   @Post('update')
-  @ApiOperation({ summary: 'Update all invoices' })
+  @ApiOperation({ summary: 'Update all invoices for the authenticated user' })
   @ApiCreatedResponse({ type: ResultUpdateAllInvoicesDto })
   async updateInvoices() {
     return this.invoiceService.updateManyInvoices();
   }
 
   @Get(':userId')
-  @ApiOperation({ summary: 'Get all invoices for a user' })
+  @ApiOperation({ summary: 'Get all invoices for the authenticated user' })
   @ApiOkResponse({ type: ResultFindAllInvoiceDto })
   @ApiNotFoundResponse({ type: ResponseNotFoundDto })
   @ApiParam({ name: 'userId', description: 'User ID' })

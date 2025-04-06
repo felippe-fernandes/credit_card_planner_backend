@@ -47,7 +47,7 @@ export class DependentsController {
   constructor(private readonly dependentsService: DependentsService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Retrieve all dependents for a user' })
+  @ApiOperation({ summary: 'Retrieve all dependents for a authenticated user' })
   @ApiQuery({ name: 'name', required: false, description: 'Filter dependents by name' })
   @ApiQuery({ name: 'id', required: false, description: 'Filter dependents by ID' })
   @ApiOkResponse({ type: ResultFindAllDependentDto })
@@ -62,7 +62,7 @@ export class DependentsController {
   }
 
   @Post()
-  @ApiOperation({ summary: 'Create a new dependent' })
+  @ApiOperation({ summary: 'Create a new dependent for the authenticated user' })
   @ApiCreatedResponse({ type: ResultCreateDependentDto })
   create(@Req() req: RequestWithUser, @Body() createDependentDto: CreateDependentDto) {
     const userId = req.user.id;
@@ -70,7 +70,7 @@ export class DependentsController {
   }
 
   @Get('/search')
-  @ApiOperation({ summary: 'Retrieve a specific dependent by ID or name' })
+  @ApiOperation({ summary: 'Retrieve a specific dependent by ID or name for the authenticated user' })
   @ApiOkResponse({ type: ResultFindOneDependentDto })
   @ApiNotFoundResponse({ type: ResponseNotFoundDto })
   @ApiQuery({ name: 'id', required: false, description: 'Dependent ID' })
@@ -82,7 +82,7 @@ export class DependentsController {
   }
 
   @Patch(':id')
-  @ApiOperation({ summary: 'Update a dependent' })
+  @ApiOperation({ summary: 'Update a dependent for the authenticated user' })
   @ApiOkResponse({ type: ResultUpdateDependentDto })
   @ApiParam({ name: 'id', description: 'Dependent ID' })
   update(
@@ -95,7 +95,7 @@ export class DependentsController {
   }
 
   @Delete(':id')
-  @ApiOperation({ summary: 'Delete a dependent' })
+  @ApiOperation({ summary: 'Delete a dependent for the authenticated user' })
   @ApiParam({ name: 'id', description: 'Dependent ID' })
   @ApiOkResponse({ type: ResultDeleteCardDto })
   remove(@Req() req: RequestWithUser, @Param('id') id: string) {

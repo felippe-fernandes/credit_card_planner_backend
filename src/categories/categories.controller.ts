@@ -48,21 +48,24 @@ export class CategoriesController {
   }
 
   @Post()
-  @ApiOperation({ summary: 'Create a new category' })
+  @ApiOperation({ summary: 'Create a new category for the authenticated user' })
   @ApiOkResponse({ type: ResultCreateCategoryDto })
   async create(@Req() req: RequestWithUser, @Body() data: CreateCategoryDto) {
     return this.categoryService.create(req.user.id, data);
   }
 
   @Post('add-defaults')
-  @ApiOperation({ summary: 'Add default categories for the user' })
+  @ApiOperation({ summary: 'Add default categories for the authenticated user' })
   @ApiCreatedResponse({ type: BaseResponseDto })
   async addDefaults(@Req() req: RequestWithUser) {
     return this.categoryService.addDefaultCategories(req.user.id);
   }
 
   @Get('/search')
-  @ApiOperation({ summary: 'Find a category', description: 'Find a specific category by ID or name.' })
+  @ApiOperation({
+    summary: 'Find a category',
+    description: 'Find a specific category name for the authenticated user',
+  })
   @ApiOkResponse({ type: ResultFindOneCategoryDto })
   @ApiNotFoundResponse({ type: ResponseNotFoundDto })
   @ApiQuery({ name: 'name', required: false, description: 'Category name' })
@@ -73,7 +76,7 @@ export class CategoriesController {
   }
 
   @Patch(':name')
-  @ApiOperation({ summary: 'Update a category' })
+  @ApiOperation({ summary: 'Update a category for the authenticated user' })
   @ApiOkResponse({ type: ResultUpdateCategoryDto })
   @ApiParam({ name: 'name', description: 'Category Name', required: false })
   async update(
@@ -86,7 +89,7 @@ export class CategoriesController {
   }
 
   @Delete(':name')
-  @ApiOperation({ summary: 'Delete a category' })
+  @ApiOperation({ summary: 'Delete a category for the authenticated user' })
   @ApiOkResponse({ type: ResultDeleteCategoryDto })
   @ApiParam({ name: 'name', description: 'Category name' })
   async remove(@Req() req: RequestWithUser, @Param('name') name: string) {
