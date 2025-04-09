@@ -1,6 +1,5 @@
 import { HttpStatus } from '@nestjs/common';
 import { ApiProperty } from '@nestjs/swagger';
-import { Session } from '@supabase/supabase-js';
 import { IsEmail, IsNotEmpty, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
 import { ResponseWithDataDto } from 'src/constants';
 
@@ -54,6 +53,160 @@ export class LoginDto {
     example: 'password123',
   })
   password: string;
+}
+
+export class UserAppMetadataDto {
+  @ApiProperty()
+  provider: string;
+
+  @ApiProperty({ type: [String] })
+  providers: string[];
+}
+
+export class UserMetadataDto {
+  @ApiProperty()
+  displayName: string;
+
+  @ApiProperty()
+  email: string;
+
+  @ApiProperty()
+  email_verified: boolean;
+
+  @ApiProperty()
+  phone: string;
+
+  @ApiProperty()
+  phone_verified: boolean;
+
+  @ApiProperty()
+  sub: string;
+}
+
+export class UserIdentityDto {
+  @ApiProperty()
+  identity_id: string;
+
+  @ApiProperty()
+  id: string;
+
+  @ApiProperty()
+  user_id: string;
+
+  @ApiProperty({ type: () => UserMetadataDto })
+  identity_data: UserMetadataDto;
+
+  @ApiProperty()
+  provider: string;
+
+  @ApiProperty()
+  last_sign_in_at: string;
+
+  @ApiProperty()
+  created_at: string;
+
+  @ApiProperty()
+  updated_at: string;
+
+  @ApiProperty()
+  email: string;
+}
+
+export class AuthUserDto {
+  @ApiProperty()
+  id: string;
+
+  @ApiProperty({ type: () => UserAppMetadataDto })
+  app_metadata: UserAppMetadataDto;
+
+  @ApiProperty({ type: () => UserMetadataDto })
+  user_metadata: UserMetadataDto;
+
+  @ApiProperty()
+  aud: string;
+
+  @ApiProperty({ required: false })
+  confirmation_sent_at?: string;
+
+  @ApiProperty({ required: false })
+  recovery_sent_at?: string;
+
+  @ApiProperty({ required: false })
+  email_change_sent_at?: string;
+
+  @ApiProperty({ required: false })
+  new_email?: string;
+
+  @ApiProperty({ required: false })
+  new_phone?: string;
+
+  @ApiProperty({ required: false })
+  invited_at?: string;
+
+  @ApiProperty({ required: false })
+  action_link?: string;
+
+  @ApiProperty({ required: false })
+  email?: string;
+
+  @ApiProperty({ required: false })
+  phone?: string;
+
+  @ApiProperty()
+  created_at: string;
+
+  @ApiProperty({ required: false })
+  confirmed_at?: string;
+
+  @ApiProperty({ required: false })
+  email_confirmed_at?: string;
+
+  @ApiProperty({ required: false })
+  phone_confirmed_at?: string;
+
+  @ApiProperty({ required: false })
+  last_sign_in_at?: string;
+
+  @ApiProperty({ required: false })
+  role?: string;
+
+  @ApiProperty({ required: false })
+  updated_at?: string;
+
+  @ApiProperty({ type: [UserIdentityDto], required: false })
+  identities?: UserIdentityDto[];
+
+  @ApiProperty({ required: false })
+  is_anonymous?: boolean;
+
+  @ApiProperty({ required: false })
+  is_sso_user?: boolean;
+}
+
+export class SessionDto {
+  @ApiProperty({ required: false, nullable: true })
+  provider_token?: string | null;
+
+  @ApiProperty({ required: false, nullable: true })
+  provider_refresh_token?: string | null;
+
+  @ApiProperty()
+  access_token: string;
+
+  @ApiProperty()
+  refresh_token: string;
+
+  @ApiProperty()
+  expires_in: number;
+
+  @ApiProperty({ required: false })
+  expires_at?: number;
+
+  @ApiProperty()
+  token_type: string;
+
+  @ApiProperty({ type: () => AuthUserDto })
+  user: AuthUserDto;
 }
 
 export class ResultLoginDto extends ResponseWithDataDto {
@@ -111,7 +264,7 @@ export class ResultLoginDto extends ResponseWithDataDto {
       },
     },
   })
-  data: Session;
+  data: SessionDto;
 
   @ApiProperty({ example: 'Login successful' })
   message: string;
@@ -132,7 +285,7 @@ export class ResultSignupDto extends ResponseWithDataDto {
       editedAt: '2023-10-01T00:00:00Z',
     },
   })
-  data: Session;
+  data: SessionDto;
 
   @ApiProperty({
     example: 1,
