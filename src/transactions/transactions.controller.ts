@@ -35,7 +35,10 @@ export class TransactionsController {
   constructor(private readonly transactionsService: TransactionsService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Retrieve all transactions' })
+  @ApiOperation({
+    summary: 'Retrieve all transactions',
+    operationId: 'getAllTransactions',
+  })
   @ApiOkResponse({ type: ResultFindAllTransactionsDto })
   @ApiNotFoundResponse({ type: ResponseNotFoundDto })
   @ApiQuery({ name: 'card', required: false, description: 'Card ID' })
@@ -80,7 +83,10 @@ export class TransactionsController {
   }
 
   @Post()
-  @ApiOperation({ summary: 'Create a new transaction for the authenticated user' })
+  @ApiOperation({
+    summary: 'Create a new transaction',
+    operationId: 'createTransaction',
+  })
   @ApiCreatedResponse({ type: ResultCreateTransactionDto })
   async create(@Req() req: RequestWithUser, @Body() createTransactionDto: CreateTransactionDto) {
     const userId = req.user.id;
@@ -88,7 +94,10 @@ export class TransactionsController {
   }
 
   @Get('/search')
-  @ApiOperation({ summary: 'Retrieve a transaction for the authenticated user' })
+  @ApiOperation({
+    summary: 'Retrieve a transaction by ID',
+    operationId: 'findTransactionByFilters',
+  })
   @ApiOkResponse({ type: ResultFindOneTransactionDto })
   @ApiNotFoundResponse({ type: ResponseNotFoundDto })
   @ApiQuery({ name: 'id', required: false, description: 'Transaction ID' })
@@ -98,7 +107,7 @@ export class TransactionsController {
   @ApiQuery({ name: 'purchaseCategory', required: false, description: 'Purchase category' })
   @ApiQuery({ name: 'description', required: false, description: 'Description' })
   @ApiQuery({ name: 'purchaseDate', required: false, description: 'Purchase date' })
-  async findOne(
+  async findTransactionByFilters(
     @Req() req: RequestWithUser,
     @Query('id') id?: string,
     @Query('purchaseName') purchaseName?: string,
@@ -122,10 +131,13 @@ export class TransactionsController {
   }
 
   @Put(':id')
-  @ApiOperation({ summary: 'Update a transaction for the authenticated user' })
+  @ApiOperation({
+    summary: 'Update a transaction',
+    operationId: 'updateTransaction',
+  })
   @ApiOkResponse({ type: ResultUpdateTransactionDto })
   @ApiParam({ name: 'id', required: true, description: 'Transaction ID' })
-  async update(
+  async updateTransaction(
     @Req() req: RequestWithUser,
     @Param('id') transactionId: string,
     @Body() updateTransactionDto: UpdateTransactionDto,
@@ -135,10 +147,13 @@ export class TransactionsController {
   }
 
   @Delete(':id')
-  @ApiOperation({ summary: 'Delete a transaction for the authenticated user' })
+  @ApiOperation({
+    summary: 'Delete a transaction',
+    operationId: 'deleteTransaction',
+  })
   @ApiOkResponse({ type: ResultDeleteTransactionDto })
   @ApiParam({ name: 'id', required: true, description: 'Transaction ID' })
-  async remove(@Req() req: RequestWithUser, @Param('id') transactionId: string) {
+  async deleteTransaction(@Req() req: RequestWithUser, @Param('id') transactionId: string) {
     const userId = req.user.id;
     return this.transactionsService.remove(userId, transactionId);
   }

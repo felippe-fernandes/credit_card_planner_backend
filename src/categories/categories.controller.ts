@@ -37,49 +37,65 @@ export class CategoriesController {
   @ApiOperation({
     summary: 'Get all categories',
     description: 'Retrieve all categories for the authenticated user.',
+    operationId: 'getAllCategories',
   })
   @ApiOkResponse({ type: ResultFindAllCategoryDto })
   @ApiNotFoundResponse({ type: ResponseNotFoundDto })
   @ApiQuery({ name: 'name', required: false, description: 'Filter by category name' })
-  async findAll(@Req() req: RequestWithUser, @Query('name') name?: string) {
+  async getAllCategories(@Req() req: RequestWithUser, @Query('name') name?: string) {
     const userId = req.user.id;
     const filters = { name };
     return this.categoryService.findAll(userId, filters);
   }
 
   @Post()
-  @ApiOperation({ summary: 'Create a new category for the authenticated user' })
+  @ApiOperation({
+    summary: 'Create a new category',
+    operationId: 'createCategory',
+  })
   @ApiOkResponse({ type: ResultCreateCategoryDto })
-  async create(@Req() req: RequestWithUser, @Body() data: CreateCategoryDto) {
+  async createCategory(@Req() req: RequestWithUser, @Body() data: CreateCategoryDto) {
     return this.categoryService.create(req.user.id, data);
   }
 
   @Post('add-defaults')
-  @ApiOperation({ summary: 'Add default categories for the authenticated user' })
+  @ApiOperation({
+    summary: 'Add default categories for the user',
+    operationId: 'addDefaultCategories',
+  })
   @ApiCreatedResponse({ type: BaseResponseDto })
-  async addDefaults(@Req() req: RequestWithUser) {
+  async addDefaultCategories(@Req() req: RequestWithUser) {
     return this.categoryService.addDefaultCategories(req.user.id);
   }
 
   @Get('/search')
   @ApiOperation({
     summary: 'Find a category',
-    description: 'Find a specific category name for the authenticated user',
+    description: 'Find a specific category by ID or name.',
+    operationId: 'findCategory',
   })
   @ApiOkResponse({ type: ResultFindOneCategoryDto })
   @ApiNotFoundResponse({ type: ResponseNotFoundDto })
   @ApiQuery({ name: 'name', required: false, description: 'Category name' })
-  async findOne(@Req() req: RequestWithUser, @Query('name') name?: string) {
+  async findCategory(@Req() req: RequestWithUser, @Query('name') name?: string) {
     const userId = req.user.id;
     const filters: FindOneCategoryDto = { name };
     return this.categoryService.findOne(userId, filters);
   }
 
   @Patch(':name')
-  @ApiOperation({ summary: 'Update a category for the authenticated user' })
+  @ApiOperation({
+    summary: 'Update a category',
+    operationId: 'updateCategory',
+  })
   @ApiOkResponse({ type: ResultUpdateCategoryDto })
-  @ApiParam({ name: 'name', description: 'Category Name', required: false })
-  async update(
+  @ApiParam({
+    name: 'name',
+    description: 'Category Name',
+    required: true,
+    type: String,
+  })
+  async updateCategory(
     @Req() req: RequestWithUser,
     @Param('name') categoryName: string,
     @Body() updateCategoryDto: UpdateCategoryDto,
@@ -89,10 +105,13 @@ export class CategoriesController {
   }
 
   @Delete(':name')
-  @ApiOperation({ summary: 'Delete a category for the authenticated user' })
+  @ApiOperation({
+    summary: 'Delete a category',
+    operationId: 'deleteCategory',
+  })
   @ApiOkResponse({ type: ResultDeleteCategoryDto })
   @ApiParam({ name: 'name', description: 'Category name' })
-  async remove(@Req() req: RequestWithUser, @Param('name') name: string) {
+  async deleteCategory(@Req() req: RequestWithUser, @Param('name') name: string) {
     return this.categoryService.remove(name, req.user.id);
   }
 }

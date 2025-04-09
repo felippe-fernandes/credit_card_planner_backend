@@ -52,28 +52,28 @@ export class UserController {
 
   @Get()
   @Roles('SUPER_ADMIN')
-  @ApiOperation({ summary: 'Get all users. For SUPER_ADMIN only' })
+  @ApiOperation({ summary: 'Get all users', operationId: 'getAllUsers' })
   @ApiOkResponse({ type: ResultFindAllUsersDto })
   @ApiNotFoundResponse({ type: ResponseNotFoundDto })
-  findAll() {
+  getAllUsers() {
     return this.userService.findAll();
   }
 
   @Put('change-role')
   @Roles('SUPER_ADMIN')
-  @ApiOperation({ summary: "Change a user's role. For SUPER_ADMIN only" })
+  @ApiOperation({ summary: "Change a user's role", operationId: 'changeUserRole' })
   @ApiBody({ type: UpdateUserRoleDto })
   @ApiOkResponse({ type: ResultUpdateUserRoleDto })
-  updateRole(@Body() updateUserDto: UpdateUserRoleDto) {
+  changeUserRole(@Body() updateUserDto: UpdateUserRoleDto) {
     return this.userService.updateRole(updateUserDto);
   }
 
   @Delete('delete/:id')
   @Roles('SUPER_ADMIN')
-  @ApiOperation({ summary: 'Delete a user by ID. For SUPER_ADMIN only' })
+  @ApiOperation({ summary: 'Delete a user by ID', operationId: 'deleteUserById' })
   @ApiOkResponse({ type: ResultDeleteUserDto })
-  @ApiParam({ name: 'userId', type: String, description: 'User ID' })
-  async deleteUser(@Param('userId') userId: string, @Res({ passthrough: true }) response: Response) {
+  @ApiParam({ name: 'id', type: String, description: 'User ID' })
+  async deleteUserById(@Param('id') userId: string, @Res({ passthrough: true }) response: Response) {
     try {
       await this.authService.deleteUser(userId, response);
       return this.userService.remove(userId);
@@ -88,34 +88,33 @@ export class UserController {
 
   @Patch('edit/:id')
   @Roles('SUPER_ADMIN')
-  @ApiOperation({ summary: 'Update a user by ID. For SUPER_ADMIN only' })
+  @ApiOperation({ summary: 'Update a user by ID', operationId: 'updateUserById' })
   @ApiOkResponse({ type: ResultUpdateUserRoleDto })
-  @ApiParam({ name: 'userId', type: String, description: 'User ID' })
-  async updateUser(@Param('userId') userId: string, @Body() updateUserDto: UpdateUserDto) {
+  @ApiParam({ name: 'id', type: String, description: 'User ID' })
+  async updateUserById(@Param('id') userId: string, @Body() updateUserDto: UpdateUserDto) {
     return this.userService.update(userId, updateUserDto);
   }
 
   @Get('me')
-  @ApiOperation({ summary: 'Get current authenticated user' })
+  @ApiOperation({ summary: 'Get current logged in user', operationId: 'getCurrentUser' })
   @ApiOkResponse({ type: ResultFindOneUserDto })
   @ApiNotFoundResponse({ type: ResponseNotFoundDto })
-  findMe(@Req() req: RequestWithUser) {
+  getCurrentUser(@Req() req: RequestWithUser) {
     return this.userService.findOne(req.user.id);
   }
 
   @Patch('me')
-  @ApiOperation({ summary: 'Update current authenticated user' })
+  @ApiOperation({ summary: 'Update current logged in user', operationId: 'updateCurrentUser' })
   @ApiBody({ type: UpdateUserDto })
   @ApiOkResponse({ type: ResultUpdateUserRoleDto })
-  @ApiBody({ type: UpdateUserDto })
-  update(@Req() req: RequestWithUser, @Body() updateUserDto: UpdateUserDto) {
+  updateCurrentUser(@Req() req: RequestWithUser, @Body() updateUserDto: UpdateUserDto) {
     return this.userService.update(req.user.id, updateUserDto);
   }
 
   @Delete('me')
-  @ApiOperation({ summary: 'Delete current authenticated user' })
+  @ApiOperation({ summary: 'Delete current logged in user', operationId: 'deleteCurrentUser' })
   @ApiOkResponse({ type: ResultDeleteUserDto })
-  async remove(@Req() req: RequestWithUser, @Res() res: Response) {
+  async deleteCurrentUser(@Req() req: RequestWithUser, @Res() res: Response) {
     const userId = req.user.id;
     try {
       await this.authService.deleteUser(userId, res);
