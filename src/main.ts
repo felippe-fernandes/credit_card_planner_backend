@@ -32,7 +32,7 @@ async function bootstrap() {
   app.useGlobalFilters(new HttpExceptionFilter());
 
   app.enableCors({
-    origin: 'http://localhost:3000',
+    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
   });
@@ -59,5 +59,9 @@ async function bootstrap() {
   SwaggerModule.setup('api', app, document);
 
   await app.listen(process.env.PORT ?? 3001);
+
+  console.log(
+    `🚀 Server running at http://localhost:${process.env.PORT ?? 3001} in ${process.env.NODE_ENV} mode`,
+  );
 }
 bootstrap().catch((err) => console.error(err));

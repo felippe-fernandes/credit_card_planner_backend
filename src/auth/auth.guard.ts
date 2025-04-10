@@ -9,15 +9,12 @@ export class AuthGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<RequestWithUser>();
-    const authHeader = request.headers.authorization;
 
-    if (!authHeader) {
-      throw new HttpException('Authorization token is required', HttpStatus.UNAUTHORIZED);
-    }
+    // 🔁 Agora pega o token do cookie
+    const token = request.cookies?.sb_auth_token;
 
-    const token = authHeader.split(' ')[1];
     if (!token) {
-      throw new HttpException('Invalid authorization format', HttpStatus.UNAUTHORIZED);
+      throw new HttpException('Authorization token is required', HttpStatus.UNAUTHORIZED);
     }
 
     const { data: supabaseUserData, error: supabaseUserError } = await supabase.auth.getUser(token);
@@ -35,10 +32,6 @@ export class AuthGuard implements CanActivate {
     }
 
     request.user = { ...supabaseUserData.user, userRole: prismaUser.role };
-
-    if (prismaUser.role === 'SUPER_ADMIN') {
-      return true;
-    }
 
     return true;
   }

@@ -34,7 +34,7 @@ export class CardsController {
   constructor(private cardService: CardsService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Retrieve all cards for the authenticated user', operationId: 'findAllCards' })
+  @ApiOperation({ summary: 'Retrieve all cards for the authenticated user', operationId: 'getAllCards' })
   @ApiOkResponse({ type: ResultFindAllCardDto })
   @ApiNotFoundResponse({ type: ResponseNotFoundDto })
   @ApiQuery({ name: 'flag', required: false, description: 'Card flag' })
@@ -42,7 +42,7 @@ export class CardsController {
   @ApiQuery({ name: 'dueDay', required: false, description: 'Due day' })
   @ApiQuery({ name: 'payDay', required: false, description: 'Pay day' })
   @ApiQuery({ name: 'name', required: false, description: 'Card name' })
-  async findAllCards(
+  async getAllCards(
     @Req() req: RequestWithUser,
     @Query('flag') flag?: string,
     @Query('bank') bank?: string,
@@ -68,14 +68,14 @@ export class CardsController {
   @Get('/search')
   @ApiOperation({
     summary: 'Retrieve a single card based on id or name. At least one parameter is required',
-    operationId: 'findOneCard',
+    operationId: 'findCard',
   })
   @ApiOkResponse({ type: ResultFindOneCardDto })
   @ApiNotFoundResponse({ type: ResponseNotFoundDto })
   @ApiQuery({ name: 'id', required: false, description: 'Card ID' })
   @ApiQuery({ name: 'name', required: false, description: 'Card name' })
   @ApiQuery({ name: 'bank', required: false, description: 'Bank name' })
-  async findOneCard(
+  async findCard(
     @Req() req: RequestWithUser,
     @Query('id') id?: string,
     @Query('name') name?: string,
