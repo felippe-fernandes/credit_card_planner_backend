@@ -37,10 +37,11 @@ export class AuthService {
 
       const { access_token } = data.session;
 
-      res.cookie('auth_token', access_token, {
+      res.cookie('sb_auth_token', access_token, {
         httpOnly: true,
         secure: true,
         sameSite: 'strict',
+        path: '/',
         maxAge: 60 * 60 * 1000,
       });
 
@@ -68,7 +69,12 @@ export class AuthService {
       });
     }
 
-    res.clearCookie('auth_token');
+    res.clearCookie('sb_auth_token', {
+      path: '/',
+      httpOnly: true,
+      secure: true,
+      sameSite: 'strict',
+    });
 
     return {
       statusCode: HttpStatus.OK,
