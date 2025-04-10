@@ -1,62 +1,80 @@
-💳 Controle de Gastos
+# 💳 Expense Tracker
 
-Este projeto é uma API desenvolvida com NestJS para controle de gastos com cartões de crédito. Ele utiliza PostgreSQL hospedado no Supabase como banco de dados e está implantado no Render.
+This project is an API built with NestJS for tracking credit card expenses.  
+It uses PostgreSQL hosted on Supabase as the database and is deployed on Render.
 
-🚀 Tecnologias Utilizadas
+---
 
-NestJS - Framework para Node.js
+## 🚀 Technologies Used
 
-Prisma - ORM para interagir com o PostgreSQL
+- **NestJS**: A progressive Node.js framework
+- **Prisma**: ORM to interact with PostgreSQL
+- **Supabase**: Managed PostgreSQL database
+- **Render**: Deployment platform
 
-Supabase - Banco de dados PostgreSQL gerenciado
+---
 
-Render - Plataforma de deploy
+## 🏗 Project Structure
 
-🏗 Estrutura do Projeto
+- **Backend**: Built with NestJS and Prisma
+- **Database**: PostgreSQL on Supabase
+- **Authentication**: Supabase Auth
+- **Deployment**: Deployed on Render
 
-Backend: Desenvolvido com NestJS e Prisma
+---
 
-Banco de Dados: PostgreSQL no Supabase
+## 🔧 Environment Setup
 
-Autenticação: Supabase Auth
+### 1. Clone the repository:
 
-Deploy: Feito na plataforma Render
+```bash
+git clone https://github.com/your-username/your-repository.git
+cd your-repository
+```
 
-🔧 Configuração do Ambiente
+### 2. Install dependencies:
 
-Clone o repositório:
-
-git clone https://github.com/seu-usuario/seu-repositorio.git
-cd seu-repositorio
-
-Instale as dependências:
-
+```bash
 npm install
+```
 
-Configure o arquivo .env com suas credenciais:
+### 3. Copy the example environment file and update it with your credentials:
 
-DATABASE_URL=postgresql://seu-usuario:senha@host:porta/banco
+```bash
+cp .env.example .env
+```
 
-Execute as migrações do banco de dados:
+Then open `.env` and fill in the required values:
 
+```env
+DATABASE_URL=postgresql://your-user:password@host:port/database
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+FRONTEND_URL=http://localhost:3000
+```
+
+### 4. Run database migrations:
+
+```bash
 npx prisma db push
+```
 
-Inicie o servidor localmente:
+### 5. Start the local server:
 
+```bash
 npm run start:dev
+```
 
-🌍 Deploy no Render
+## 🌍 Deployment on Render
 
-O projeto está configurado para deploy automático no Render. Após cada push na branch principal, o Render executa automaticamente o build e reinicia o servidor.
+The project is set up for automatic deployment on [Render](https://render.com).  
+After each push to the `main` branch, Render automatically builds and restarts the server.
 
-Caso precise rodar manualmente:
+If you need to run it manually:
 
+```bash
 npm run build && npm run start:prod
+```
 
-🛠 Tecnologias Futuras
-
-Dashboard com gráficos
-
-Integração com OpenAI para insights financeiros
-
-Desenvolvido por Felippe Fernandes🚀
+Developed by Felippe Fernandes 🚀
