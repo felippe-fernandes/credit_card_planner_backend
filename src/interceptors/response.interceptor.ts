@@ -16,7 +16,7 @@ export class ResponseInterceptor<T extends IReceivedData<T>> implements NestInte
       map((data) => {
         const response = {
           success: true,
-          data: data.result,
+          result: data.result,
           message: data.message,
           statusCode: data.statusCode,
         };

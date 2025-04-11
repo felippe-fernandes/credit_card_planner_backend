@@ -264,7 +264,7 @@ export class ResultLoginDto extends ResponseWithDataDto {
       },
     },
   })
-  data: SessionDto;
+  result: SessionDto;
 
   @ApiProperty({ example: 'Login successful' })
   message: string;
@@ -285,7 +285,7 @@ export class ResultSignupDto extends ResponseWithDataDto {
       editedAt: '2023-10-01T00:00:00Z',
     },
   })
-  data: SessionDto;
+  result: SessionDto;
 
   @ApiProperty({
     example: 1,

@@ -5,7 +5,7 @@ interface ErrorResponse {
   success: boolean;
   statusCode: number;
   message: string;
-  data?: null;
+  result?: null;
   count?: number;
 }
 
@@ -31,7 +31,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
     };
 
     if (status === (HttpStatus.NOT_FOUND as number)) {
-      errorResponse.data = null;
+      errorResponse.result = null;
       errorResponse.count = 0;
     }
 

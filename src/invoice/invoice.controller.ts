@@ -2,6 +2,7 @@ import { Controller, Get, Param, Post } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiCreatedResponse,
+  ApiExtraModels,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
@@ -10,12 +11,13 @@ import {
 } from '@nestjs/swagger';
 import { ResponseNotFoundDto } from 'src/constants';
 import { ApiErrorDefaultResponses } from 'src/decorators/api-error-default-response.decorators';
-import { ResultFindAllInvoiceDto, ResultUpdateAllInvoicesDto } from './dto/invoice.dto';
+import { EnumInvoiceStatusDto, ResultFindAllInvoiceDto, ResultUpdateAllInvoicesDto } from './dto/invoice.dto';
 import { InvoiceService } from './invoice.service';
 
 @Controller('invoice')
 @ApiTags('Invoice')
 @ApiBearerAuth()
+@ApiExtraModels(EnumInvoiceStatusDto)
 @ApiErrorDefaultResponses()
 export class InvoiceController {
   constructor(private readonly invoiceService: InvoiceService) {}
