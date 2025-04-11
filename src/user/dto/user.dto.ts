@@ -1,8 +1,13 @@
 import { HttpStatus } from '@nestjs/common';
 import { ApiProperty } from '@nestjs/swagger';
-import { Role, User } from '@prisma/client';
 import { IsEmail, IsEnum, IsOptional, IsString } from 'class-validator';
 import { ResponseWithDataDto } from 'src/constants';
+
+export enum RoleDto {
+  USER = 'USER',
+  ADMIN = 'ADMIN',
+  SUPER_ADMIN = 'SUPER_ADMIN',
+}
 
 export class UpdateUserDto {
   @ApiProperty({
@@ -34,10 +39,33 @@ export class UpdateUserRoleDto {
   userId: string;
 
   @IsString()
-  @IsEnum(Role)
+  @IsEnum(RoleDto)
   @ApiProperty({ description: 'New role for the user', required: true, enumName: 'Role' })
-  @ApiProperty({ enum: Role, enumName: 'Role' })
-  newRole: Role;
+  @ApiProperty({ enum: RoleDto, enumName: 'Role' })
+  newRole: RoleDto;
+}
+
+export class UserDto {
+  @ApiProperty({ example: '123e4567-e89b-12d3-a456-426614174000' })
+  id: string;
+
+  @ApiProperty({ example: 'João Silva' })
+  name: string;
+
+  @ApiProperty({ example: 'joao@example.com' })
+  email: string;
+
+  @ApiProperty({ example: '+5531987654321', nullable: true })
+  phone: string | null;
+
+  @ApiProperty({ enum: RoleDto, example: RoleDto.USER })
+  role: RoleDto;
+
+  @ApiProperty({ example: '2023-01-01T00:00:00.000Z' })
+  createdAt: Date;
+
+  @ApiProperty({ example: '2023-01-02T00:00:00.000Z', nullable: true })
+  editedAt: Date | null;
 }
 
 const resultUsers = [
@@ -74,7 +102,7 @@ export class ResultFindAllUsersDto extends ResponseWithDataDto {
   @ApiProperty({
     example: resultUsers,
   })
-  result: User[];
+  result: UserDto[];
 
   @ApiProperty({
     example: 3,
@@ -86,19 +114,18 @@ export class ResultFindOneUserDto extends ResponseWithDataDto {
   @ApiProperty({
     example: resultUsers[0],
   })
-  result: User;
+  result: UserDto;
 
   @ApiProperty({
     example: 1,
   })
   count: number;
 }
-
 export class ResultUpdateUserRoleDto extends ResponseWithDataDto {
   @ApiProperty({
     example: resultUsers[0],
   })
-  data: any;
+  result: any;
 
   @ApiProperty({
     example: 1,
@@ -115,7 +142,7 @@ export class ResultDeleteUserDto extends ResponseWithDataDto {
   @ApiProperty({
     example: { userId: 'mb1231xca12asd1234da' },
   })
-  data: any;
+  result: any;
 
   @ApiProperty({
     example: 1,
