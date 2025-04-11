@@ -72,7 +72,7 @@ export class ResponseNotFoundDto {
   message: string;
 
   @ApiProperty({ example: null })
-  data: any;
+  result: any;
 }
 
 export class ResponseInternalServerErrorDto {

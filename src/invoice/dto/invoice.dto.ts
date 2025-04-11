@@ -1,6 +1,7 @@
 import { HttpStatus } from '@nestjs/common';
 import { ApiProperty } from '@nestjs/swagger';
-import { Invoice } from '@prisma/client';
+import { Decimal } from '@prisma/client/runtime/library';
+import { IsDate, IsEnum, IsNumber, IsOptional, IsString } from 'class-validator';
 import { ResponseWithDataDto } from 'src/constants';
 
 const resultSearchInvoices = [
@@ -45,11 +46,67 @@ const resultSearchInvoices = [
   },
 ];
 
+export enum InvoiceStatusDto {
+  PENDING = 'PENDING',
+  PAID = 'PAID',
+  OVERDUE = 'OVERDUE',
+}
+
+export class EnumInvoiceStatusDto {
+  @ApiProperty({ enum: InvoiceStatusDto, example: InvoiceStatusDto.PENDING })
+  status: InvoiceStatusDto;
+}
+
+export class InvoiceDto {
+  @ApiProperty({ example: 'a1b2c3d4-5678-90ab-cdef-1234567890ab' })
+  @IsString()
+  id: string;
+
+  @ApiProperty({ example: 'd5147b61-90d2-4b19-a987-c32e5e47e220' })
+  @IsString()
+  userId: string;
+
+  @ApiProperty({ example: 'cm8vsfvyx0001wce8b40bhum2' })
+  @IsString()
+  cardId: string;
+
+  @ApiProperty({ example: 2 })
+  @IsNumber()
+  month: number;
+
+  @ApiProperty({ example: 2025 })
+  @IsNumber()
+  year: number;
+
+  @ApiProperty({ example: '2500.75', type: String })
+  totalAmount: Decimal;
+
+  @ApiProperty({ example: '500.00', type: String })
+  paidAmount: Decimal;
+
+  @ApiProperty({ example: '2025-03-25T00:00:00.000Z' })
+  @IsDate()
+  dueDate: Date;
+
+  @ApiProperty({ enum: InvoiceStatusDto, example: InvoiceStatusDto.PENDING })
+  @IsEnum(InvoiceStatusDto)
+  status: InvoiceStatusDto;
+
+  @ApiProperty({ example: '2025-03-29T22:41:58.909Z' })
+  @IsDate()
+  createdAt: Date;
+
+  @ApiProperty({ example: '2025-03-29T22:41:58.909Z', nullable: true })
+  @IsOptional()
+  @IsDate()
+  editedAt: Date | null;
+}
+
 export class ResultFindAllInvoiceDto extends ResponseWithDataDto {
   @ApiProperty({
     example: resultSearchInvoices,
   })
-  result: Invoice[];
+  result: InvoiceDto[];
 
   @ApiProperty({
     example: 3,
@@ -62,7 +119,7 @@ export class ResultUpdateAllInvoicesDto extends ResponseWithDataDto {
   @ApiProperty({
     example: resultUpdateAllInvoice,
   })
-  data: any;
+  result: any;
 
   @ApiProperty({
     example: 2,

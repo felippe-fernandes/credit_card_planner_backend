@@ -1,7 +1,16 @@
 import { HttpStatus } from '@nestjs/common';
 import { ApiProperty } from '@nestjs/swagger';
-import { Card } from '@prisma/client';
-import { IsDecimal, IsInt, IsNumberString, IsOptional, IsString, Max, Min } from 'class-validator';
+import {
+  IsDate,
+  IsDecimal,
+  IsInt,
+  IsNumber,
+  IsNumberString,
+  IsOptional,
+  IsString,
+  Max,
+  Min,
+} from 'class-validator';
 import { ResponseWithDataDto } from 'src/constants';
 
 export class CreateCardDto {
@@ -143,18 +152,69 @@ const resultSearchCard = [
   },
 ];
 
+export class CardDto {
+  @ApiProperty({ example: 'a1b2c3d4-e5f6-7g8h-9i0j-k1l2m3n4o5p6' })
+  @IsString()
+  id: string;
+
+  @ApiProperty({ example: 'Nubank Platinum' })
+  @IsString()
+  name: string;
+
+  @ApiProperty({ example: 'user-123' })
+  @IsString()
+  userId: string;
+
+  @ApiProperty({ example: '2025-04-01T12:00:00.000Z' })
+  @IsDate()
+  createdAt: Date;
+
+  @ApiProperty({ example: '2025-04-02T12:00:00.000Z', nullable: true })
+  @IsOptional()
+  @IsDate()
+  editedAt: Date | null;
+
+  @ApiProperty({ example: 'Nubank' })
+  @IsString()
+  bank: string;
+
+  @ApiProperty({ example: 'Visa' })
+  @IsString()
+  flag: string;
+
+  @ApiProperty({ example: '5000.00', description: 'Credit limit', type: String })
+  @IsString()
+  limit: string;
+
+  @ApiProperty({ example: 10, description: 'Due day' })
+  @IsNumber()
+  dueDay: number;
+
+  @ApiProperty({ example: 5, description: 'Pay day' })
+  @IsNumber()
+  payDay: number;
+
+  @ApiProperty({ example: '3500.00', description: 'Available limit', type: String })
+  @IsString()
+  availableLimit: string;
+
+  @ApiProperty({ example: '4200.00', description: 'Simulated limit', type: String })
+  @IsString()
+  simulatedLimit: string;
+}
+
 export class ResultFindAllCardDto extends ResponseWithDataDto {
   @ApiProperty({
     example: resultSearchCard,
   })
-  result: Card[];
+  result: CardDto[];
 }
 
 export class ResultFindOneCardDto extends ResponseWithDataDto {
   @ApiProperty({
     example: resultSearchCard[0],
   })
-  result: Card;
+  result: CardDto;
 
   @ApiProperty({
     example: 1,
@@ -181,7 +241,7 @@ export class ResultCreateCardDto extends ResponseWithDataDto {
   @ApiProperty({
     example: resultCreateCard,
   })
-  data: any;
+  result: any;
 
   @ApiProperty({
     example: 1,
@@ -198,7 +258,7 @@ export class ResultUpdateCardDto extends ResponseWithDataDto {
   @ApiProperty({
     example: resultCreateCard,
   })
-  data: any;
+  result: any;
 
   @ApiProperty({
     example: 1,
@@ -215,7 +275,7 @@ export class ResultDeleteCardDto extends ResponseWithDataDto {
   @ApiProperty({
     example: { cardId: 'mb1231xcaasd1234da' },
   })
-  data: any;
+  result: any;
 
   @ApiProperty({
     example: 1,
