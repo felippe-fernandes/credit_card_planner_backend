@@ -1,6 +1,6 @@
 import { HttpStatus } from '@nestjs/common';
 import { ApiProperty } from '@nestjs/swagger';
-import { Transaction } from '@prisma/client';
+import { Decimal } from '@prisma/client/runtime/library';
 import {
   ArrayMinSize,
   ArrayNotEmpty,
@@ -15,6 +15,65 @@ import {
   ValidateIf,
 } from 'class-validator';
 import { ResponseWithDataDto } from 'src/constants';
+
+export class TransactionDto {
+  @ApiProperty({ example: 'cm8vz6s4s0001wcm0tlmxqabc' })
+  id: string;
+
+  @ApiProperty({ example: 'cm8vsfvyx0001wce8b40bhum2' })
+  cardId: string;
+
+  @ApiProperty({ example: 'd5147b61-90d2-4b19-a987-c32e5e47e220' })
+  userId: string;
+
+  @ApiProperty({
+    example: 'd5147b61-90d2-4b19-a987-c32e5e47e223',
+    nullable: true,
+  })
+  dependentId: string | null;
+
+  @ApiProperty({ example: 'Concert Tickets' })
+  purchaseName: string;
+
+  @ApiProperty({ example: 'Entertainment' })
+  purchaseCategory: string;
+
+  @ApiProperty({
+    example: 'Live music event',
+    nullable: true,
+  })
+  description: string | null;
+
+  @ApiProperty({ example: '200.00', type: String })
+  amount: Decimal;
+
+  @ApiProperty({ example: '2025-03-22T20:15:00.000Z' })
+  purchaseDate: Date;
+
+  @ApiProperty({ example: 2 })
+  installments: number;
+
+  @ApiProperty({
+    example: ['100.00', '100.00'],
+    type: [String],
+  })
+  installmentsValue: Decimal[];
+
+  @ApiProperty({
+    example: ['04/2025', '05/2025'],
+    type: [String],
+  })
+  installmentDates: string[];
+
+  @ApiProperty({ example: '2025-03-22T20:15:00.000Z' })
+  createdAt: Date;
+
+  @ApiProperty({
+    example: '2025-03-22T20:15:00.000Z',
+    nullable: true,
+  })
+  editedAt: Date | null;
+}
 
 export class CreateTransactionDto {
   @ApiProperty({
@@ -61,7 +120,7 @@ export class CreateTransactionDto {
   })
   @IsArray()
   @ArrayMinSize(1)
-  @ValidateIf((obj: Transaction) => obj.installments > 1)
+  @ValidateIf((obj: TransactionDto) => obj.installments > 1)
   @IsDecimal({}, { each: true })
   @IsOptional()
   installmentValues?: number[];
@@ -124,7 +183,7 @@ export class UpdateTransactionDto {
   })
   @IsArray()
   @ArrayMinSize(1)
-  @ValidateIf((obj: Transaction) => obj.installments > 1)
+  @ValidateIf((obj: TransactionDto) => obj.installments > 1)
   @IsDecimal({}, { each: true })
   @IsOptional()
   installmentValues?: number[];
@@ -282,7 +341,7 @@ export class ResultFindAllTransactionsDto extends ResponseWithDataDto {
   @ApiProperty({
     example: resultSearchTransactions,
   })
-  result: Transaction[];
+  result: TransactionDto[];
 
   @ApiProperty({
     example: 3,
@@ -294,7 +353,7 @@ export class ResultFindOneTransactionDto extends ResponseWithDataDto {
   @ApiProperty({
     example: resultSearchTransactions[0],
   })
-  result: Transaction;
+  result: TransactionDto;
 
   @ApiProperty({
     example: 1,
@@ -315,7 +374,7 @@ export class ResultCreateTransactionDto extends ResponseWithDataDto {
   @ApiProperty({
     example: resultCreateTransaction,
   })
-  data: any;
+  result: any;
 
   @ApiProperty({
     example: 1,
@@ -332,7 +391,7 @@ export class ResultUpdateTransactionDto extends ResponseWithDataDto {
   @ApiProperty({
     example: resultCreateTransaction,
   })
-  data: any;
+  result: any;
 
   @ApiProperty({
     example: 1,
@@ -349,7 +408,7 @@ export class ResultDeleteTransactionDto extends ResponseWithDataDto {
   @ApiProperty({
     example: { transactionId: 'mb1231xcaasd1234da' },
   })
-  data: any;
+  result: any;
 
   @ApiProperty({
     example: 1,

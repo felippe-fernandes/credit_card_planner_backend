@@ -1,6 +1,5 @@
 import { HttpStatus } from '@nestjs/common';
 import { ApiProperty } from '@nestjs/swagger';
-import { Category } from '@prisma/client';
 import { IsHexColor, IsOptional, IsString } from 'class-validator';
 import { ResponseWithDataDto } from 'src/constants';
 
@@ -94,11 +93,37 @@ const resultSearchCategory = [
   },
 ];
 
+export class CategoryDto {
+  @ApiProperty({ example: 'Groceries' })
+  @IsString()
+  name: string;
+
+  @ApiProperty({ example: '🛒' })
+  @IsString()
+  icon: string;
+
+  @ApiProperty({ example: '#E97E63' })
+  @IsString()
+  @IsHexColor()
+  color: string;
+
+  @ApiProperty({ example: 'a1b2c3d4-5678-9101-1121-314151617181' })
+  @IsString()
+  userId: string;
+
+  @ApiProperty({ example: '2025-03-30T10:15:20.000Z' })
+  createdAt: Date;
+
+  @ApiProperty({ example: '2025-03-30T10:15:20.000Z', nullable: true })
+  @IsOptional()
+  editedAt: Date | null;
+}
+
 export class ResultFindAllCategoryDto extends ResponseWithDataDto {
   @ApiProperty({
     example: resultSearchCategory,
   })
-  result: Category[];
+  result: CategoryDto[];
 
   @ApiProperty({
     example: 3,
@@ -110,7 +135,7 @@ export class ResultFindOneCategoryDto extends ResponseWithDataDto {
   @ApiProperty({
     example: resultSearchCategory[0],
   })
-  result: Category;
+  result: CategoryDto;
 
   @ApiProperty({
     example: 1,
@@ -131,7 +156,7 @@ export class ResultCreateCategoryDto extends ResponseWithDataDto {
   @ApiProperty({
     example: resultCreateCategory,
   })
-  data: any;
+  result: any;
 
   @ApiProperty({
     example: 1,
@@ -148,7 +173,7 @@ export class ResultUpdateCategoryDto extends ResponseWithDataDto {
   @ApiProperty({
     example: resultCreateCategory,
   })
-  data: any;
+  result: any;
 
   @ApiProperty({
     example: 1,
@@ -165,7 +190,7 @@ export class ResultDeleteCategoryDto extends ResponseWithDataDto {
   @ApiProperty({
     example: { category: 'mb1231xcaasd1234da' },
   })
-  data: any;
+  result: any;
 
   @ApiProperty({
     example: 1,

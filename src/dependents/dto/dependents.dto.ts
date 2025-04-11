@@ -1,6 +1,5 @@
 import { HttpStatus } from '@nestjs/common';
 import { ApiProperty } from '@nestjs/swagger';
-import { Dependent } from '@prisma/client';
 import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
 import { ResponseWithDataDto } from 'src/constants';
 
@@ -67,11 +66,28 @@ const resultSearchDependent = [
   },
 ];
 
+export class DependentDto {
+  @ApiProperty({ example: '98ab76cd-5432-1ef0-9abc-345678def901' })
+  id: string;
+
+  @ApiProperty({ example: 'Michael Williams' })
+  name: string;
+
+  @ApiProperty({ example: 'd5147b61-90d2-4b19-a987-c32e5e47e220' })
+  userId: string;
+
+  @ApiProperty({ example: '2025-03-30T12:35:20.789Z' })
+  createdAt: Date;
+
+  @ApiProperty({ example: '2025-03-30T12:35:20.789Z', nullable: true })
+  editedAt: Date | null;
+}
+
 export class ResultFindAllDependentDto extends ResponseWithDataDto {
   @ApiProperty({
     example: resultSearchDependent,
   })
-  result: Dependent[];
+  result: DependentDto[];
 
   @ApiProperty({
     example: 3,
@@ -83,7 +99,7 @@ export class ResultFindOneDependentDto extends ResponseWithDataDto {
   @ApiProperty({
     example: resultSearchDependent[0],
   })
-  result: Dependent;
+  result: DependentDto;
 
   @ApiProperty({
     example: 1,
@@ -103,7 +119,7 @@ export class ResultCreateDependentDto extends ResponseWithDataDto {
   @ApiProperty({
     example: resultCreateDependent,
   })
-  data: any;
+  result: any;
 
   @ApiProperty({
     example: 1,
@@ -120,7 +136,7 @@ export class ResultUpdateDependentDto extends ResponseWithDataDto {
   @ApiProperty({
     example: resultCreateDependent,
   })
-  data: any;
+  result: any;
 
   @ApiProperty({
     example: 1,
@@ -137,7 +153,7 @@ export class ResultDeleteDependentDto extends ResponseWithDataDto {
   @ApiProperty({
     example: { dependentId: 'mb1231xcaasd1234da' },
   })
-  data: any;
+  result: any;
 
   @ApiProperty({
     example: 1,
