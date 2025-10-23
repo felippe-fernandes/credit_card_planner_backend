@@ -203,12 +203,23 @@ export class DependentsService {
   ): Promise<IReceivedData<{ dependentId: Dependent['id'] }>> {
     const existingDependent = await this.prisma.dependent.findUnique({
       where: { id: dependentId },
+      include: {
+        Transaction: true,
+      },
     });
 
     if (!existingDependent || existingDependent.userId !== userId) {
       throw new NotFoundException({
         statusCode: HttpStatus.NOT_FOUND,
         message: `Dependent with id ${dependentId} not found`,
+      });
+    }
+
+    // Check if dependent has associated transactions
+    if (existingDependent.Transaction && existingDependent.Transaction.length > 0) {
+      throw new BadRequestException({
+        statusCode: HttpStatus.BAD_REQUEST,
+        message: `Cannot delete dependent with ${existingDependent.Transaction.length} associated transaction(s). Please reassign or delete the transactions first.`,
       });
     }
 

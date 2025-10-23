@@ -1,4 +1,10 @@
-import { BadRequestException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  HttpStatus,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Card } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
 import { PrismaService } from 'prisma/prisma.service';
@@ -77,14 +83,18 @@ export class CardsService {
         });
       }
 
+      // Check if card name already exists for this user
       const existingCard = await this.prisma.card.findFirst({
-        where: { name: createCardDto.name },
+        where: {
+          name: createCardDto.name,
+          userId: userId,
+        },
       });
 
       if (existingCard) {
         throw new BadRequestException({
           statusCode: HttpStatus.BAD_REQUEST,
-          message: 'Card with the same name already exists',
+          message: 'You already have a card with this name',
         });
       }
 
@@ -169,6 +179,14 @@ export class CardsService {
         throw new NotFoundException(`Card with id ${cardId} not found`);
       }
 
+      // Authorization check: ensure card belongs to user
+      if (existingCard.userId !== userId) {
+        throw new ForbiddenException({
+          statusCode: HttpStatus.FORBIDDEN,
+          message: 'You do not have permission to update this card',
+        });
+      }
+
       let updatedAvailableLimit = existingCard.availableLimit;
 
       if (updateCardDto.limit) {
@@ -183,7 +201,6 @@ export class CardsService {
         where: { id: cardId },
         data: {
           ...updateCardDto,
-          userId,
           availableLimit: updatedAvailableLimit,
         },
       });
@@ -195,12 +212,16 @@ export class CardsService {
         result: updatedCard,
       };
     } catch (error: unknown) {
-      if (error instanceof BadRequestException || error instanceof NotFoundException) {
+      if (
+        error instanceof BadRequestException ||
+        error instanceof NotFoundException ||
+        error instanceof ForbiddenException
+      ) {
         throw error;
       }
       throw new BadRequestException({
         statusCode: HttpStatus.BAD_REQUEST,
-        message: 'Error creating card',
+        message: 'Error updating card',
       });
     }
   }

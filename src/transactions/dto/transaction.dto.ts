@@ -204,30 +204,83 @@ export class UpdateTransactionDto {
 }
 
 export class FindAllTransactionsDto {
+  @ApiProperty({
+    example: 'cm8vsfvyx0001wce8b40bhum2',
+    required: false,
+    description: 'Filter by card ID',
+  })
   @IsOptional()
   @IsString()
   card?: string;
 
+  @ApiProperty({
+    example: 'd5147b61-90d2-4b19-a987-c32e5e47e223',
+    required: false,
+    description: 'Filter by dependent ID',
+  })
   @IsOptional()
   @IsString()
   dependent?: string;
 
+  @ApiProperty({
+    example: 'Netflix',
+    required: false,
+    description: 'Search by purchase name (partial match)',
+  })
   @IsOptional()
   @IsString()
   purchaseName?: string;
 
+  @ApiProperty({
+    example: 'Entertainment',
+    required: false,
+    description: 'Filter by purchase category',
+  })
   @IsOptional()
   @IsString()
   purchaseCategory?: string;
 
+  @ApiProperty({
+    example: 6,
+    required: false,
+    description: 'Filter by number of installments',
+  })
   @IsOptional()
   @IsInt()
   installments?: number;
 
+  @ApiProperty({
+    example: '2025-03-22T20:15:00.000Z',
+    required: false,
+    description: 'Filter by specific purchase date',
+  })
   @IsOptional()
   @IsDateString()
   purchaseDate?: string;
 
+  @ApiProperty({
+    example: '2025-01-01T00:00:00.000Z',
+    required: false,
+    description: 'Filter by start date (inclusive)',
+  })
+  @IsOptional()
+  @IsDateString()
+  startDate?: string;
+
+  @ApiProperty({
+    example: '2025-12-31T23:59:59.999Z',
+    required: false,
+    description: 'Filter by end date (inclusive)',
+  })
+  @IsOptional()
+  @IsDateString()
+  endDate?: string;
+
+  @ApiProperty({
+    example: ['04/2025', '05/2025'],
+    required: false,
+    description: 'Filter by installment dates (format: MM/YYYY)',
+  })
   @IsOptional()
   @IsArray()
   @ArrayNotEmpty()

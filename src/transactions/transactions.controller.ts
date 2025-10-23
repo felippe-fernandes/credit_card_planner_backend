@@ -36,21 +36,28 @@ export class TransactionsController {
 
   @Get()
   @ApiOperation({
-    summary: 'Retrieve all transactions',
+    summary: 'Retrieve all transactions for the authenticated user with optional filters',
     operationId: 'getAllTransactions',
   })
   @ApiOkResponse({ type: ResultFindAllTransactionsDto })
   @ApiNotFoundResponse({ type: ResponseNotFoundDto })
-  @ApiQuery({ name: 'card', required: false, description: 'Card ID' })
-  @ApiQuery({ name: 'dependent', required: false, description: 'Dependent ID' })
-  @ApiQuery({ name: 'purchaseName', required: false, description: 'Purchase name' })
-  @ApiQuery({ name: 'purchaseCategory', required: false, description: 'Purchase category' })
-  @ApiQuery({ name: 'purchaseDate', required: false, description: 'Purchase date' })
-  @ApiQuery({ name: 'installments', required: false, description: 'Number of installments' })
+  @ApiQuery({ name: 'card', required: false, description: 'Filter by card ID' })
+  @ApiQuery({ name: 'dependent', required: false, description: 'Filter by dependent ID' })
+  @ApiQuery({ name: 'purchaseName', required: false, description: 'Search by purchase name (partial match)' })
+  @ApiQuery({ name: 'purchaseCategory', required: false, description: 'Filter by purchase category' })
+  @ApiQuery({ name: 'purchaseDate', required: false, description: 'Filter by specific purchase date' })
+  @ApiQuery({ name: 'startDate', required: false, description: 'Filter by start date (date range)' })
+  @ApiQuery({ name: 'endDate', required: false, description: 'Filter by end date (date range)' })
+  @ApiQuery({
+    name: 'installments',
+    required: false,
+    type: Number,
+    description: 'Filter by number of installments',
+  })
   @ApiQuery({
     name: 'installmentDates',
     required: false,
-    description: 'Installment dates. E.g. 02/2025, 05/2025',
+    description: 'Filter by installment dates (format: MM/YYYY). Example: 02/2025,05/2025',
   })
   async findAll(
     @Req() req: RequestWithUser,
@@ -59,6 +66,8 @@ export class TransactionsController {
     @Query('purchaseName') purchaseName?: string,
     @Query('purchaseCategory') purchaseCategory?: string,
     @Query('purchaseDate') purchaseDate?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
     @Query('installments') installments?: string,
     @Query('installmentDates') installmentDates?: string,
   ) {
@@ -75,6 +84,8 @@ export class TransactionsController {
       purchaseName,
       purchaseCategory,
       purchaseDate,
+      startDate,
+      endDate,
       installments: installmentsNumber,
       installmentDates: parsedInstallmentsMonth,
     };

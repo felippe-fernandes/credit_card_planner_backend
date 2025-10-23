@@ -1,6 +1,7 @@
 import { HttpStatus } from '@nestjs/common';
 import { ApiProperty } from '@nestjs/swagger';
 import { Decimal } from '@prisma/client/runtime/library';
+import { Type } from 'class-transformer';
 import { IsDate, IsEnum, IsNumber, IsOptional, IsString } from 'class-validator';
 import { ResponseWithDataDto } from 'src/constants';
 
@@ -130,4 +131,116 @@ export class ResultUpdateAllInvoicesDto extends ResponseWithDataDto {
     example: 201,
   })
   statusCode: HttpStatus;
+}
+
+// ======== NEW DTOs FOR FILTERING AND UPDATES ========
+
+export class FindAllInvoicesDto {
+  @ApiProperty({ example: 'cm8vsfvyx0001wce8b40bhum2', required: false, description: 'Filter by card ID' })
+  @IsOptional()
+  @IsString()
+  cardId?: string;
+
+  @ApiProperty({ example: 2, required: false, description: 'Filter by month (1-12)' })
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  month?: number;
+
+  @ApiProperty({ example: 2025, required: false, description: 'Filter by year' })
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  year?: number;
+
+  @ApiProperty({
+    enum: InvoiceStatusDto,
+    example: InvoiceStatusDto.PENDING,
+    required: false,
+    description: 'Filter by invoice status',
+  })
+  @IsOptional()
+  @IsEnum(InvoiceStatusDto)
+  status?: InvoiceStatusDto;
+}
+
+export class FindOneInvoiceDto {
+  @ApiProperty({ example: 'a1b2c3d4-5678-90ab-cdef-1234567890ab', required: false })
+  @IsOptional()
+  @IsString()
+  id?: string;
+
+  @ApiProperty({ example: 'cm8vsfvyx0001wce8b40bhum2', required: false })
+  @IsOptional()
+  @IsString()
+  cardId?: string;
+
+  @ApiProperty({ example: 2, required: false })
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  month?: number;
+
+  @ApiProperty({ example: 2025, required: false })
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  year?: number;
+}
+
+export class UpdateInvoiceDto {
+  @ApiProperty({ example: '1500.00', required: false, description: 'Amount paid towards invoice' })
+  @IsOptional()
+  @IsString()
+  paidAmount?: string;
+
+  @ApiProperty({
+    enum: InvoiceStatusDto,
+    example: InvoiceStatusDto.PAID,
+    required: false,
+    description: 'Invoice status',
+  })
+  @IsOptional()
+  @IsEnum(InvoiceStatusDto)
+  status?: InvoiceStatusDto;
+}
+
+export class MarkInvoiceAsPaidDto {
+  @ApiProperty({ example: '2500.75', required: false, description: 'Amount paid (defaults to totalAmount)' })
+  @IsOptional()
+  @IsString()
+  paidAmount?: string;
+}
+
+export class ForecastInvoicesDto {
+  @ApiProperty({ example: 3, description: 'Number of months to forecast ahead' })
+  @IsNumber()
+  @Type(() => Number)
+  months: number;
+
+  @ApiProperty({ example: 'cm8vsfvyx0001wce8b40bhum2', required: false, description: 'Filter by card ID' })
+  @IsOptional()
+  @IsString()
+  cardId?: string;
+}
+
+export class ResultFindOneInvoiceDto extends ResponseWithDataDto {
+  @ApiProperty({
+    example: resultSearchInvoices[0],
+  })
+  result: InvoiceDto;
+}
+
+export class ResultUpdateInvoiceDto extends ResponseWithDataDto {
+  @ApiProperty({
+    example: resultSearchInvoices[0],
+  })
+  result: InvoiceDto;
+}
+
+export class ResultMarkAsPaidDto extends ResponseWithDataDto {
+  @ApiProperty({
+    example: resultSearchInvoices[1],
+  })
+  result: InvoiceDto;
 }

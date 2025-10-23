@@ -11,7 +11,7 @@ export class AuthGuard implements CanActivate {
     const request = context.switchToHttp().getRequest<RequestWithUser>();
 
     // 🔁 Agora pega o token do cookie
-    const token = request.cookies?.sb_auth_token;
+    const token = request.cookies.sb_auth_token as string | undefined;
 
     if (!token) {
       throw new HttpException('Authorization token is required', HttpStatus.UNAUTHORIZED);
@@ -19,7 +19,7 @@ export class AuthGuard implements CanActivate {
 
     const { data: supabaseUserData, error: supabaseUserError } = await supabase.auth.getUser(token);
 
-    if (supabaseUserError || !supabaseUserData?.user) {
+    if (supabaseUserError || !supabaseUserData.user) {
       throw new HttpException('Invalid or expired token', HttpStatus.UNAUTHORIZED);
     }
 
