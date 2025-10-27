@@ -1,5 +1,6 @@
 import { HttpStatus } from '@nestjs/common';
 import { ApiProperty } from '@nestjs/swagger';
+import { PaginationMetaDto } from 'src/common/dto/pagination.dto';
 
 export class BaseResponseDto {
   @ApiProperty({ example: true })
@@ -15,6 +16,9 @@ export class BaseResponseDto {
 export class ResponseWithDataDto extends BaseResponseDto {
   @ApiProperty({ example: 10 })
   count?: number;
+
+  @ApiProperty({ type: PaginationMetaDto, required: false })
+  meta?: PaginationMetaDto;
 }
 
 export class ResponseCreatedDto extends BaseResponseDto {

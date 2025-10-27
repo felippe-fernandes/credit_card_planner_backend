@@ -3,6 +3,7 @@ import { Invoice, InvoiceStatus, Transaction } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
 import { addMonths } from 'date-fns';
 import { PrismaService } from 'prisma/prisma.service';
+import { PaginationHelper } from 'src/common/dto/pagination.dto';
 import { IReceivedData } from 'src/interceptors/response.interceptor';
 import { FindAllInvoicesDto, FindOneInvoiceDto, UpdateInvoiceDto } from './dto/invoice.dto';
 
@@ -120,6 +121,8 @@ export class InvoiceService {
 
   async FindAll(userId: string, filters?: FindAllInvoicesDto): Promise<IReceivedData<Invoice[]>> {
     try {
+      const { page = 1, limit = 10, sortBy = 'dueDate', sortOrder = 'asc' } = filters || {};
+
       const where: {
         userId: string;
         cardId?: string;
@@ -144,12 +147,16 @@ export class InvoiceService {
 
       const invoicesCount = await this.prisma.invoice.count({ where });
 
+      const skip = PaginationHelper.calculateSkip(page, limit);
+
       const invoices = await this.prisma.invoice.findMany({
         where,
-        orderBy: { dueDate: 'asc' },
+        orderBy: { [sortBy]: sortOrder },
         include: {
           card: true,
         },
+        skip,
+        take: limit,
       });
 
       if (invoices.length === 0) {
@@ -166,11 +173,14 @@ export class InvoiceService {
         invoices.map((invoice) => this.checkAndUpdateOverdueStatus(invoice)),
       );
 
+      const meta = PaginationHelper.calculateMeta(page, limit, invoicesCount);
+
       return {
         statusCode: HttpStatus.OK,
         count: invoicesCount,
         message: 'Invoices retrieved successfully',
         result: updatedInvoices,
+        meta,
       };
     } catch (error) {
       if (error instanceof BadRequestException || error instanceof NotFoundException) {

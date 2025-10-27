@@ -12,6 +12,7 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
+import { SortOrder } from 'src/common/dto/pagination.dto';
 import {
   ApiBearerAuth,
   ApiCreatedResponse,
@@ -53,16 +54,40 @@ export class DependentsController {
   })
   @ApiQuery({ name: 'name', required: false, description: 'Filter dependents by name' })
   @ApiQuery({ name: 'id', required: false, description: 'Filter dependents by ID' })
+  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Page number (default: 1)' })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Items per page (default: 10, max: 100)',
+  })
+  @ApiQuery({ name: 'sortBy', required: false, description: 'Field to sort by (default: createdAt)' })
+  @ApiQuery({
+    name: 'sortOrder',
+    required: false,
+    enum: ['asc', 'desc'],
+    description: 'Sort order (default: desc)',
+  })
   @ApiOkResponse({ type: ResultFindAllDependentDto })
   @ApiNotFoundResponse({ type: ResponseNotFoundDto })
   getAllDependents(
     @Req() req: RequestWithUser,
     @Query('id') dependentId?: string,
     @Query('name') name?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('sortBy') sortBy?: string,
+    @Query('sortOrder') sortOrder?: 'asc' | 'desc',
   ) {
+    const pageNumber = page ? parseInt(page, 10) : 1;
+    const limitNumber = limit ? parseInt(limit, 10) : 10;
     const filters: FindAllDependentsDto = {
       dependentId,
       name,
+      page: pageNumber,
+      limit: limitNumber,
+      sortBy,
+      sortOrder: sortOrder as SortOrder,
     };
     const userId = req.user.id;
     return this.dependentsService.findAll(userId, filters);

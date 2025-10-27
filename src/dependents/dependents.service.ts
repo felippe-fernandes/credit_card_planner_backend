@@ -1,6 +1,7 @@
 import { BadRequestException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
 import { Dependent } from '@prisma/client';
 import { PrismaService } from 'prisma/prisma.service';
+import { PaginationHelper } from 'src/common/dto/pagination.dto';
 import { IReceivedData } from 'src/interceptors/response.interceptor';
 import {
   CreateDependentDto,
@@ -15,32 +16,41 @@ export class DependentsService {
 
   async findAll(userId: string, filters: FindAllDependentsDto): Promise<IReceivedData<Dependent[]>> {
     try {
-      const { name, dependentId, ...restOfTheFilters } = filters;
-      const dependentsCount = await this.prisma.dependent.count({
-        where: {
-          userId,
-          AND: {
-            ...restOfTheFilters,
-            name: {
-              contains: name,
-              mode: 'insensitive',
-            },
+      const {
+        name,
+        dependentId,
+        page = 1,
+        limit = 10,
+        sortBy = 'createdAt',
+        sortOrder = 'desc',
+        ...restOfTheFilters
+      } = filters;
+
+      const whereClause = {
+        userId,
+        AND: {
+          ...restOfTheFilters,
+          name: {
+            contains: name,
+            mode: 'insensitive' as const,
           },
+          id: dependentId,
         },
+      };
+
+      const dependentsCount = await this.prisma.dependent.count({
+        where: whereClause,
       });
 
+      const skip = PaginationHelper.calculateSkip(page, limit);
+
       const dependents = await this.prisma.dependent.findMany({
-        where: {
-          userId,
-          AND: {
-            ...restOfTheFilters,
-            name: {
-              contains: name,
-              mode: 'insensitive',
-            },
-            id: dependentId,
-          },
+        where: whereClause,
+        orderBy: {
+          [sortBy]: sortOrder,
         },
+        skip,
+        take: limit,
       });
 
       if (dependents.length === 0) {
@@ -51,11 +61,15 @@ export class DependentsService {
           data: null,
         });
       }
+
+      const meta = PaginationHelper.calculateMeta(page, limit, dependentsCount);
+
       return {
         statusCode: HttpStatus.OK,
         count: dependentsCount,
         message: 'Dependents retrieved successfully',
         result: dependents,
+        meta,
       };
     } catch (error) {
       if (error instanceof BadRequestException || error instanceof NotFoundException) {
@@ -63,7 +77,7 @@ export class DependentsService {
       }
       throw new BadRequestException({
         statusCode: HttpStatus.BAD_REQUEST,
-        message: 'Error creating dependent',
+        message: 'Error retrieving dependents',
       });
     }
   }
@@ -130,7 +144,7 @@ export class DependentsService {
           userId,
           AND: {
             id: { equals: filters.id },
-            name: { equals: filters.name, mode: 'insensitive' },
+            name: { equals: filters.name, mode: 'insensitive' as const },
           },
         },
       });

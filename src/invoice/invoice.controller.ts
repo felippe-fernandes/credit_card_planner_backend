@@ -1,4 +1,5 @@
 import { Body, Controller, Get, Param, Patch, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
+import { SortOrder } from 'src/common/dto/pagination.dto';
 import {
   ApiBearerAuth,
   ApiCreatedResponse,
@@ -63,22 +64,46 @@ export class InvoiceController {
     enum: ['PENDING', 'PAID', 'OVERDUE'],
     description: 'Filter by invoice status',
   })
+  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Page number (default: 1)' })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Items per page (default: 10, max: 100)',
+  })
+  @ApiQuery({ name: 'sortBy', required: false, description: 'Field to sort by (default: dueDate)' })
+  @ApiQuery({
+    name: 'sortOrder',
+    required: false,
+    enum: ['asc', 'desc'],
+    description: 'Sort order (default: asc)',
+  })
   async getAllInvoices(
     @Req() req: RequestWithUser,
     @Query('cardId') cardId?: string,
     @Query('month') month?: string,
     @Query('year') year?: string,
     @Query('status') status?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('sortBy') sortBy?: string,
+    @Query('sortOrder') sortOrder?: 'asc' | 'desc',
   ) {
     const userId = req.user.id;
     const monthNumber = month ? parseInt(month, 10) : undefined;
     const yearNumber = year ? parseInt(year, 10) : undefined;
+    const pageNumber = page ? parseInt(page, 10) : 1;
+    const limitNumber = limit ? parseInt(limit, 10) : 10;
 
     const filters: FindAllInvoicesDto = {
       cardId,
       month: monthNumber,
       year: yearNumber,
       status: status as any,
+      page: pageNumber,
+      limit: limitNumber,
+      sortBy,
+      sortOrder: sortOrder as SortOrder,
     };
 
     return this.invoiceService.FindAll(userId, filters);

@@ -1,4 +1,5 @@
 import { Body, Controller, Delete, Get, Param, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
+import { SortOrder } from 'src/common/dto/pagination.dto';
 import {
   ApiBearerAuth,
   ApiCreatedResponse,
@@ -59,6 +60,25 @@ export class TransactionsController {
     required: false,
     description: 'Filter by installment dates (format: MM/YYYY). Example: 02/2025,05/2025',
   })
+  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Page number (default: 1)' })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Items per page (default: 10, max: 100)',
+  })
+  @ApiQuery({
+    name: 'sortBy',
+    required: false,
+    description: 'Field to sort by (default: createdAt)',
+    example: 'createdAt',
+  })
+  @ApiQuery({
+    name: 'sortOrder',
+    required: false,
+    enum: ['asc', 'desc'],
+    description: 'Sort order (default: desc)',
+  })
   async findAll(
     @Req() req: RequestWithUser,
     @Query('card') card?: string,
@@ -70,9 +90,15 @@ export class TransactionsController {
     @Query('endDate') endDate?: string,
     @Query('installments') installments?: string,
     @Query('installmentDates') installmentDates?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('sortBy') sortBy?: string,
+    @Query('sortOrder') sortOrder?: 'asc' | 'desc',
   ) {
     const userId = req.user.id;
     const installmentsNumber = installments ? parseInt(installments, 10) : undefined;
+    const pageNumber = page ? parseInt(page, 10) : 1;
+    const limitNumber = limit ? parseInt(limit, 10) : 10;
 
     const parsedInstallmentsMonth = Array.isArray(installmentDates)
       ? installmentDates
@@ -88,6 +114,10 @@ export class TransactionsController {
       endDate,
       installments: installmentsNumber,
       installmentDates: parsedInstallmentsMonth,
+      page: pageNumber,
+      limit: limitNumber,
+      sortBy,
+      sortOrder: sortOrder as SortOrder,
     };
 
     return this.transactionsService.findAll(userId, filters);

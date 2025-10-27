@@ -3,6 +3,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Decimal } from '@prisma/client/runtime/library';
 import { Type } from 'class-transformer';
 import { IsDate, IsEnum, IsNumber, IsOptional, IsString } from 'class-validator';
+import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { ResponseWithDataDto } from 'src/constants';
 
 const resultSearchInvoices = [
@@ -135,7 +136,7 @@ export class ResultUpdateAllInvoicesDto extends ResponseWithDataDto {
 
 // ======== NEW DTOs FOR FILTERING AND UPDATES ========
 
-export class FindAllInvoicesDto {
+export class FindAllInvoicesDto extends PaginationDto {
   @ApiProperty({ example: 'cm8vsfvyx0001wce8b40bhum2', required: false, description: 'Filter by card ID' })
   @IsOptional()
   @IsString()

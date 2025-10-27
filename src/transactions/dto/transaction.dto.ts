@@ -14,6 +14,7 @@ import {
   Matches,
   ValidateIf,
 } from 'class-validator';
+import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { ResponseWithDataDto } from 'src/constants';
 
 export class TransactionDto {
@@ -203,7 +204,7 @@ export class UpdateTransactionDto {
   dependentId?: string;
 }
 
-export class FindAllTransactionsDto {
+export class FindAllTransactionsDto extends PaginationDto {
   @ApiProperty({
     example: 'cm8vsfvyx0001wce8b40bhum2',
     required: false,

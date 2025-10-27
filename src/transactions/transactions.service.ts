@@ -2,6 +2,7 @@ import { BadRequestException, HttpStatus, Injectable, NotFoundException } from '
 import { Prisma, Transaction } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
 import { PrismaService } from 'prisma/prisma.service';
+import { PaginationHelper } from 'src/common/dto/pagination.dto';
 import { IReceivedData } from 'src/interceptors/response.interceptor';
 import { calculateInstallmentDates } from 'src/utils/transactions';
 import {
@@ -87,7 +88,17 @@ export class TransactionsService {
   }
 
   async findAll(userId: string, filters: FindAllTransactionsDto): Promise<IReceivedData<Transaction[]>> {
-    const { purchaseName, installmentDates, startDate, endDate, ...restOfTheFilters } = filters;
+    const {
+      purchaseName,
+      installmentDates,
+      startDate,
+      endDate,
+      page = 1,
+      limit = 10,
+      sortBy = 'createdAt',
+      sortOrder = 'desc',
+      ...restOfTheFilters
+    } = filters;
 
     try {
       // Build date range filter
@@ -108,32 +119,26 @@ export class TransactionsService {
         dateFilter.purchaseDate = { lte: new Date(endDate) };
       }
 
-      const transactionCount = await this.prisma.transaction.count({
-        where: {
-          userId,
-          AND: {
-            ...restOfTheFilters,
-            ...dateFilter,
-            purchaseName: purchaseName ? { contains: purchaseName, mode: 'insensitive' } : undefined,
-            installmentDates: installmentDates ? { hasSome: installmentDates } : undefined,
-            card: restOfTheFilters.card ? { id: restOfTheFilters.card } : undefined,
-            dependent: restOfTheFilters.dependent ? { id: restOfTheFilters.dependent } : undefined,
-          },
+      const whereClause = {
+        userId,
+        AND: {
+          ...restOfTheFilters,
+          ...dateFilter,
+          purchaseName: purchaseName ? { contains: purchaseName, mode: 'insensitive' as const } : undefined,
+          installmentDates: installmentDates ? { hasSome: installmentDates } : undefined,
+          card: restOfTheFilters.card ? { id: restOfTheFilters.card } : undefined,
+          dependent: restOfTheFilters.dependent ? { id: restOfTheFilters.dependent } : undefined,
         },
+      };
+
+      const transactionCount = await this.prisma.transaction.count({
+        where: whereClause,
       });
 
+      const skip = PaginationHelper.calculateSkip(page, limit);
+
       const transactions = await this.prisma.transaction.findMany({
-        where: {
-          userId,
-          AND: {
-            ...restOfTheFilters,
-            ...dateFilter,
-            purchaseName: purchaseName ? { contains: purchaseName, mode: 'insensitive' } : undefined,
-            card: restOfTheFilters.card ? { id: restOfTheFilters.card } : undefined,
-            installmentDates: installmentDates ? { hasSome: installmentDates } : undefined,
-            dependent: restOfTheFilters.dependent ? { id: restOfTheFilters.dependent } : undefined,
-          },
-        },
+        where: whereClause,
         include: {
           card: {
             select: {
@@ -146,6 +151,11 @@ export class TransactionsService {
             },
           },
         },
+        orderBy: {
+          [sortBy]: sortOrder,
+        },
+        skip,
+        take: limit,
       });
 
       if (transactions.length === 0) {
@@ -157,11 +167,14 @@ export class TransactionsService {
         });
       }
 
+      const meta = PaginationHelper.calculateMeta(page, limit, transactionCount);
+
       return {
         statusCode: HttpStatus.OK,
         count: transactionCount,
         message: 'Transactions retrieved successfully',
         result: transactions,
+        meta,
       };
     } catch (error) {
       if (error instanceof BadRequestException || error instanceof NotFoundException) {
@@ -169,7 +182,7 @@ export class TransactionsService {
       }
       throw new BadRequestException({
         statusCode: HttpStatus.BAD_REQUEST,
-        message: 'Error creating transaction',
+        message: 'Error retrieving transactions',
       });
     }
   }
@@ -263,7 +276,7 @@ export class TransactionsService {
             id: filters.id ? filters.id : undefined,
             purchaseName: filters.purchaseName ? filters.purchaseName : undefined,
             description: filters.description
-              ? { contains: filters.description, mode: 'insensitive' }
+              ? { contains: filters.description, mode: 'insensitive' as const }
               : undefined,
           },
         },

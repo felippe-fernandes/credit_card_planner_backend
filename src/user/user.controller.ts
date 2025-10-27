@@ -8,10 +8,12 @@ import {
   Param,
   Patch,
   Put,
+  Query,
   Req,
   Res,
   UseGuards,
 } from '@nestjs/common';
+import { SortOrder } from 'src/common/dto/pagination.dto';
 import {
   ApiBearerAuth,
   ApiBody,
@@ -19,6 +21,7 @@ import {
   ApiOkResponse,
   ApiOperation,
   ApiParam,
+  ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
 import { Response } from 'express';
@@ -55,8 +58,34 @@ export class UserController {
   @ApiOperation({ summary: 'Get all users', operationId: 'getAllUsers' })
   @ApiOkResponse({ type: ResultFindAllUsersDto })
   @ApiNotFoundResponse({ type: ResponseNotFoundDto })
-  getAllUsers() {
-    return this.userService.findAll();
+  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Page number (default: 1)' })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Items per page (default: 10, max: 100)',
+  })
+  @ApiQuery({ name: 'sortBy', required: false, description: 'Field to sort by (default: createdAt)' })
+  @ApiQuery({
+    name: 'sortOrder',
+    required: false,
+    enum: ['asc', 'desc'],
+    description: 'Sort order (default: desc)',
+  })
+  getAllUsers(
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('sortBy') sortBy?: string,
+    @Query('sortOrder') sortOrder?: 'asc' | 'desc',
+  ) {
+    const pageNumber = page ? parseInt(page, 10) : 1;
+    const limitNumber = limit ? parseInt(limit, 10) : 10;
+    return this.userService.findAll({
+      page: pageNumber,
+      limit: limitNumber,
+      sortBy,
+      sortOrder: sortOrder as SortOrder,
+    });
   }
 
   @Put('change-role')
