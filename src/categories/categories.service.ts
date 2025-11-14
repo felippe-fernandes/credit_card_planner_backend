@@ -1,6 +1,7 @@
 import { BadRequestException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
 import { Category } from '@prisma/client';
 import { PrismaService } from 'prisma/prisma.service';
+import { PaginationHelper } from 'src/common/dto/pagination.dto';
 import { defaultCategories } from 'src/constants/categories';
 import { IReceivedData } from 'src/interceptors/response.interceptor';
 import {
@@ -15,33 +16,40 @@ export class CategoriesService {
   constructor(private prisma: PrismaService) {}
 
   async findAll(userId: string, filters: FindAllCategoryDto): Promise<IReceivedData<Category[]>> {
-    const { name, ...restOfTheFilters } = filters;
+    const {
+      name,
+      page = 1,
+      limit = 10,
+      sortBy = 'createdAt',
+      sortOrder = 'desc',
+      ...restOfTheFilters
+    } = filters;
 
     try {
-      const categoriesCount = await this.prisma.category.count({
-        where: {
-          userId,
-          AND: {
-            ...restOfTheFilters,
-            name: {
-              contains: name,
-              mode: 'insensitive',
-            },
+      const whereClause = {
+        userId,
+        AND: {
+          ...restOfTheFilters,
+          name: {
+            contains: name,
+            mode: 'insensitive' as const,
           },
         },
+      };
+
+      const categoriesCount = await this.prisma.category.count({
+        where: whereClause,
       });
 
+      const skip = PaginationHelper.calculateSkip(page, limit);
+
       const categories = await this.prisma.category.findMany({
-        where: {
-          userId,
-          AND: {
-            ...restOfTheFilters,
-            name: {
-              contains: name,
-              mode: 'insensitive',
-            },
-          },
+        where: whereClause,
+        orderBy: {
+          [sortBy]: sortOrder,
         },
+        skip,
+        take: limit,
       });
 
       if (categories.length === 0) {
@@ -52,11 +60,15 @@ export class CategoriesService {
           data: null,
         });
       }
+
+      const meta = PaginationHelper.calculateMeta(page, limit, categoriesCount);
+
       return {
         statusCode: HttpStatus.OK,
         count: categoriesCount,
         message: 'Categories retrieved successfully',
         result: categories,
+        meta,
       };
     } catch {
       throw new BadRequestException({

@@ -1,6 +1,7 @@
 import { HttpStatus } from '@nestjs/common';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsHexColor, IsOptional, IsString } from 'class-validator';
+import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { ResponseWithDataDto } from 'src/constants';
 
 export class CreateCategoryDto {
@@ -50,7 +51,7 @@ export class UpdateCategoryDto {
   color?: string;
 }
 
-export class FindAllCategoryDto {
+export class FindAllCategoryDto extends PaginationDto {
   @IsOptional()
   @IsString()
   id?: string;
