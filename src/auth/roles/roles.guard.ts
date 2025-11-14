@@ -27,20 +27,16 @@ export class RolesGuard implements CanActivate {
 
     const request = context.switchToHttp().getRequest<RequestWithUser>();
 
-    const authHeader = request.headers.authorization;
+    // Use cookie instead of Authorization header (consistent with AuthGuard)
+    const token = request.cookies.sb_auth_token as string | undefined;
 
-    if (!authHeader) {
-      throw new HttpException('Authorization token is required', HttpStatus.UNAUTHORIZED);
-    }
-
-    const token = authHeader.split(' ')[1];
     if (!token) {
-      throw new HttpException('Invalid authorization format', HttpStatus.UNAUTHORIZED);
+      throw new HttpException('Authorization token is required', HttpStatus.UNAUTHORIZED);
     }
 
     const { data: supabaseUserData, error: supabaseUserError } = await supabase.auth.getUser(token);
 
-    if (supabaseUserError || !supabaseUserData?.user) {
+    if (supabaseUserError || !supabaseUserData.user) {
       throw new HttpException('Invalid or expired token', HttpStatus.UNAUTHORIZED);
     }
 
@@ -54,7 +50,7 @@ export class RolesGuard implements CanActivate {
 
     const user = { ...supabaseUserData.user, userRole: prismaUser.role };
 
-    if (!user || !user.userRole) {
+    if (!user.userRole) {
       throw new HttpException('User role not found', HttpStatus.UNAUTHORIZED);
     }
 

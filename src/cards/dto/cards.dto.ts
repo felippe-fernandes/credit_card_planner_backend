@@ -11,6 +11,7 @@ import {
   Max,
   Min,
 } from 'class-validator';
+import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { ResponseWithDataDto } from 'src/constants';
 
 export class CreateCardDto {
@@ -95,7 +96,7 @@ export class FindOneCardDto {
   bank?: string;
 }
 
-export class FindAllCardsDto {
+export class FindAllCardsDto extends PaginationDto {
   @IsOptional()
   @IsString()
   flag?: string;

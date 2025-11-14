@@ -32,13 +32,13 @@ async function bootstrap() {
   app.useGlobalFilters(new HttpExceptionFilter());
 
   app.enableCors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    origin: process.env.FRONTEND_URL ?? 'http://localhost:3000',
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
   });
 
   const config = new DocumentBuilder()
-    .setTitle('Credit Card Planner API')
+    .setTitle('Credit Card Planner - Swagger')
     .setDescription('The API for the Credit Card Planner application')
     .setVersion('1.0')
     .addBearerAuth()
@@ -56,7 +56,9 @@ async function bootstrap() {
       return acc;
     }, {});
 
-  SwaggerModule.setup('api', app, document);
+  SwaggerModule.setup('api', app, document, {
+    customSiteTitle: 'Credit Card Planner - Swagger',
+  });
 
   await app.listen(process.env.PORT ?? 3001);
 

@@ -1,4 +1,5 @@
 import { Body, Controller, Delete, Get, Param, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
+import { SortOrder } from 'src/common/dto/pagination.dto';
 import {
   ApiBearerAuth,
   ApiCreatedResponse,
@@ -36,21 +37,47 @@ export class TransactionsController {
 
   @Get()
   @ApiOperation({
-    summary: 'Retrieve all transactions',
+    summary: 'Retrieve all transactions for the authenticated user with optional filters',
     operationId: 'getAllTransactions',
   })
   @ApiOkResponse({ type: ResultFindAllTransactionsDto })
   @ApiNotFoundResponse({ type: ResponseNotFoundDto })
-  @ApiQuery({ name: 'card', required: false, description: 'Card ID' })
-  @ApiQuery({ name: 'dependent', required: false, description: 'Dependent ID' })
-  @ApiQuery({ name: 'purchaseName', required: false, description: 'Purchase name' })
-  @ApiQuery({ name: 'purchaseCategory', required: false, description: 'Purchase category' })
-  @ApiQuery({ name: 'purchaseDate', required: false, description: 'Purchase date' })
-  @ApiQuery({ name: 'installments', required: false, description: 'Number of installments' })
+  @ApiQuery({ name: 'card', required: false, description: 'Filter by card ID' })
+  @ApiQuery({ name: 'dependent', required: false, description: 'Filter by dependent ID' })
+  @ApiQuery({ name: 'purchaseName', required: false, description: 'Search by purchase name (partial match)' })
+  @ApiQuery({ name: 'purchaseCategory', required: false, description: 'Filter by purchase category' })
+  @ApiQuery({ name: 'purchaseDate', required: false, description: 'Filter by specific purchase date' })
+  @ApiQuery({ name: 'startDate', required: false, description: 'Filter by start date (date range)' })
+  @ApiQuery({ name: 'endDate', required: false, description: 'Filter by end date (date range)' })
+  @ApiQuery({
+    name: 'installments',
+    required: false,
+    type: Number,
+    description: 'Filter by number of installments',
+  })
   @ApiQuery({
     name: 'installmentDates',
     required: false,
-    description: 'Installment dates. E.g. 02/2025, 05/2025',
+    description: 'Filter by installment dates (format: MM/YYYY). Example: 02/2025,05/2025',
+  })
+  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Page number (default: 1)' })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Items per page (default: 10, max: 100)',
+  })
+  @ApiQuery({
+    name: 'sortBy',
+    required: false,
+    description: 'Field to sort by (default: createdAt)',
+    example: 'createdAt',
+  })
+  @ApiQuery({
+    name: 'sortOrder',
+    required: false,
+    enum: ['asc', 'desc'],
+    description: 'Sort order (default: desc)',
   })
   async findAll(
     @Req() req: RequestWithUser,
@@ -59,11 +86,19 @@ export class TransactionsController {
     @Query('purchaseName') purchaseName?: string,
     @Query('purchaseCategory') purchaseCategory?: string,
     @Query('purchaseDate') purchaseDate?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
     @Query('installments') installments?: string,
     @Query('installmentDates') installmentDates?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('sortBy') sortBy?: string,
+    @Query('sortOrder') sortOrder?: 'asc' | 'desc',
   ) {
     const userId = req.user.id;
     const installmentsNumber = installments ? parseInt(installments, 10) : undefined;
+    const pageNumber = page ? parseInt(page, 10) : 1;
+    const limitNumber = limit ? parseInt(limit, 10) : 10;
 
     const parsedInstallmentsMonth = Array.isArray(installmentDates)
       ? installmentDates
@@ -75,8 +110,14 @@ export class TransactionsController {
       purchaseName,
       purchaseCategory,
       purchaseDate,
+      startDate,
+      endDate,
       installments: installmentsNumber,
       installmentDates: parsedInstallmentsMonth,
+      page: pageNumber,
+      limit: limitNumber,
+      sortBy,
+      sortOrder: sortOrder as SortOrder,
     };
 
     return this.transactionsService.findAll(userId, filters);

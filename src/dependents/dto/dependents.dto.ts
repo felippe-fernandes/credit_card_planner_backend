@@ -1,6 +1,7 @@
 import { HttpStatus } from '@nestjs/common';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { ResponseWithDataDto } from 'src/constants';
 
 export class CreateDependentDto {
@@ -22,7 +23,7 @@ export class UpdateDependentDto {
   name: string;
 }
 
-export class FindAllDependentsDto {
+export class FindAllDependentsDto extends PaginationDto {
   @IsOptional()
   @IsString()
   dependentId?: string;

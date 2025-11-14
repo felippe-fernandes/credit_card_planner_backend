@@ -84,32 +84,38 @@ export class AuthService {
 
   private async signUpUserWithRole(payload: SignupDto, role: Role): Promise<IReceivedData<User>> {
     const { email, password, name, phone } = payload;
-
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      phone,
-      options: {
-        data: { displayName: name, phone },
-      },
-    });
-
-    if (error) {
-      throw new BadRequestException({
-        statusCode: HttpStatus.BAD_REQUEST,
-        message: `Error signing up: ${error.message}`,
-      });
-    }
-
-    const user = data.user;
-    if (!user) {
-      throw new BadRequestException({
-        statusCode: HttpStatus.BAD_REQUEST,
-        message: 'Error retrieving user from Supabase',
-      });
-    }
+    let supabaseUserId: string | null = null;
 
     try {
+      // Step 1: Create user in Supabase Auth
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        phone,
+        options: {
+          data: { displayName: name, phone },
+          emailRedirectTo: process.env.FRONTEND_URL,
+        },
+      });
+
+      if (error) {
+        throw new BadRequestException({
+          statusCode: HttpStatus.BAD_REQUEST,
+          message: `Error signing up: ${error.message}`,
+        });
+      }
+
+      const user = data.user;
+      if (!user) {
+        throw new BadRequestException({
+          statusCode: HttpStatus.BAD_REQUEST,
+          message: 'Error retrieving user from Supabase',
+        });
+      }
+
+      supabaseUserId = user.id;
+
+      // Step 2: Create user in Prisma database
       const newUser = await this.prisma.user.create({
         data: {
           id: user.id,
@@ -120,7 +126,7 @@ export class AuthService {
           dependents: {
             create: {
               name,
-              id: user.id,
+              // Removed id field to let Prisma generate unique ID
             },
           },
           categories: {
@@ -136,12 +142,21 @@ export class AuthService {
         result: newUser,
       };
     } catch (error) {
+      // Rollback: If Prisma creation failed, delete from Supabase
+      if (supabaseUserId) {
+        try {
+          await supabase.auth.admin.deleteUser(supabaseUserId);
+        } catch (deleteError) {
+          console.error('Failed to rollback Supabase user:', deleteError);
+        }
+      }
+
       if (error instanceof BadRequestException) {
         throw error;
       }
       throw new BadRequestException({
         statusCode: HttpStatus.BAD_REQUEST,
-        message: 'Error singing up user',
+        message: 'Error signing up user',
       });
     }
   }
@@ -167,27 +182,48 @@ export class AuthService {
         });
       }
 
-      const { error } = await supabase.auth.admin.deleteUser(userId);
+      // Check if user exists and is not SUPER_ADMIN
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { role: true },
+      });
 
-      if (error) {
-        if (error.message.includes('User not allowed')) {
-          throw new ForbiddenException({
-            statusCode: HttpStatus.FORBIDDEN,
-            message: 'You are not allowed to delete this user.',
-          });
-        }
-
+      if (!user) {
         throw new BadRequestException({
-          statusCode: HttpStatus.BAD_REQUEST,
-          message: `Error deleting user: ${error.message}`,
+          statusCode: HttpStatus.NOT_FOUND,
+          message: 'User not found',
         });
       }
 
-      res.clearCookie('auth_token');
+      if (user.role === 'SUPER_ADMIN') {
+        throw new ForbiddenException({
+          statusCode: HttpStatus.FORBIDDEN,
+          message: 'Cannot delete SUPER_ADMIN users',
+        });
+      }
+
+      // Delete from Prisma database first (triggers cascades)
+      await this.prisma.user.delete({ where: { id: userId } });
+
+      // Then delete from Supabase Auth
+      const { error } = await supabase.auth.admin.deleteUser(userId);
+
+      if (error) {
+        // Log the error but don't fail the operation since DB deletion succeeded
+        console.error('Failed to delete user from Supabase Auth:', error);
+      }
+
+      // Clear cookie with correct name and options
+      res.clearCookie('sb_auth_token', {
+        path: '/',
+        httpOnly: true,
+        secure: true,
+        sameSite: 'strict',
+      });
 
       return { message: 'User successfully deleted.' };
     } catch (error) {
-      if (error instanceof BadRequestException) {
+      if (error instanceof BadRequestException || error instanceof ForbiddenException) {
         throw error;
       }
       throw new BadRequestException({
@@ -224,12 +260,12 @@ export class AuthService {
 
       return { message: 'User successfully updated.' };
     } catch (error) {
-      if (error instanceof BadRequestException) {
+      if (error instanceof BadRequestException || error instanceof ForbiddenException) {
         throw error;
       }
       throw new BadRequestException({
         statusCode: HttpStatus.BAD_REQUEST,
-        message: 'Error deleting user',
+        message: 'Error updating user',
       });
     }
   }
