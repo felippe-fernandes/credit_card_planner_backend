@@ -1,7 +1,14 @@
-import { BadRequestException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  HttpStatus,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Card } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
 import { PrismaService } from 'prisma/prisma.service';
+import { PaginationHelper } from 'src/common/dto/pagination.dto';
 import { IReceivedData } from 'src/interceptors/response.interceptor';
 import { CreateCardDto, FindAllCardsDto, FindOneCardDto, UpdateCardDto } from './dto/cards.dto';
 
@@ -10,33 +17,40 @@ export class CardsService {
   constructor(private prisma: PrismaService) {}
 
   async findAll(userId: string, filters: FindAllCardsDto): Promise<IReceivedData<Card[]>> {
-    const { name, ...restOfTheFilters } = filters;
+    const {
+      name,
+      page = 1,
+      limit = 10,
+      sortBy = 'createdAt',
+      sortOrder = 'desc',
+      ...restOfTheFilters
+    } = filters;
 
     try {
-      const cardsCount = await this.prisma.card.count({
-        where: {
-          userId,
-          AND: {
-            ...restOfTheFilters,
-            name: {
-              contains: name,
-              mode: 'insensitive',
-            },
+      const whereClause = {
+        userId,
+        AND: {
+          ...restOfTheFilters,
+          name: {
+            contains: name,
+            mode: 'insensitive' as const,
           },
         },
+      };
+
+      const cardsCount = await this.prisma.card.count({
+        where: whereClause,
       });
 
+      const skip = PaginationHelper.calculateSkip(page, limit);
+
       const cards = await this.prisma.card.findMany({
-        where: {
-          userId,
-          AND: {
-            ...restOfTheFilters,
-            name: {
-              contains: name,
-              mode: 'insensitive',
-            },
-          },
+        where: whereClause,
+        orderBy: {
+          [sortBy]: sortOrder,
         },
+        skip,
+        take: limit,
       });
 
       if (cardsCount === 0) {
@@ -47,11 +61,15 @@ export class CardsService {
           data: null,
         });
       }
+
+      const meta = PaginationHelper.calculateMeta(page, limit, cardsCount);
+
       return {
         statusCode: HttpStatus.OK,
         count: cardsCount,
         message: 'Cards retrieved successfully',
         result: cards,
+        meta,
       };
     } catch (error) {
       if (error instanceof NotFoundException) {
@@ -77,14 +95,18 @@ export class CardsService {
         });
       }
 
+      // Check if card name already exists for this user
       const existingCard = await this.prisma.card.findFirst({
-        where: { name: createCardDto.name },
+        where: {
+          name: createCardDto.name,
+          userId: userId,
+        },
       });
 
       if (existingCard) {
         throw new BadRequestException({
           statusCode: HttpStatus.BAD_REQUEST,
-          message: 'Card with the same name already exists',
+          message: 'You already have a card with this name',
         });
       }
 
@@ -127,8 +149,8 @@ export class CardsService {
           userId,
           AND: {
             id: { equals: filters.id },
-            name: { equals: filters.name, mode: 'insensitive' },
-            bank: { equals: filters.bank, mode: 'insensitive' },
+            name: { equals: filters.name, mode: 'insensitive' as const },
+            bank: { equals: filters.bank, mode: 'insensitive' as const },
           },
         },
       });
@@ -169,6 +191,14 @@ export class CardsService {
         throw new NotFoundException(`Card with id ${cardId} not found`);
       }
 
+      // Authorization check: ensure card belongs to user
+      if (existingCard.userId !== userId) {
+        throw new ForbiddenException({
+          statusCode: HttpStatus.FORBIDDEN,
+          message: 'You do not have permission to update this card',
+        });
+      }
+
       let updatedAvailableLimit = existingCard.availableLimit;
 
       if (updateCardDto.limit) {
@@ -183,7 +213,6 @@ export class CardsService {
         where: { id: cardId },
         data: {
           ...updateCardDto,
-          userId,
           availableLimit: updatedAvailableLimit,
         },
       });
@@ -195,12 +224,16 @@ export class CardsService {
         result: updatedCard,
       };
     } catch (error: unknown) {
-      if (error instanceof BadRequestException || error instanceof NotFoundException) {
+      if (
+        error instanceof BadRequestException ||
+        error instanceof NotFoundException ||
+        error instanceof ForbiddenException
+      ) {
         throw error;
       }
       throw new BadRequestException({
         statusCode: HttpStatus.BAD_REQUEST,
-        message: 'Error creating card',
+        message: 'Error updating card',
       });
     }
   }

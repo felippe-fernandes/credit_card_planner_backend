@@ -2,8 +2,9 @@ import { BadRequestException, HttpStatus, Injectable, NotFoundException } from '
 import { User } from '@prisma/client';
 import { PrismaService } from 'prisma/prisma.service';
 import { AuthService } from 'src/auth/auth.service';
+import { PaginationHelper } from 'src/common/dto/pagination.dto';
 import { IReceivedData } from 'src/interceptors/response.interceptor';
-import { UpdateUserDto, UpdateUserRoleDto } from './dto/user.dto';
+import { FindAllUsersDto, UpdateUserDto, UpdateUserRoleDto } from './dto/user.dto';
 
 @Injectable()
 export class UserService {
@@ -12,11 +13,22 @@ export class UserService {
     private authService: AuthService,
   ) {}
 
-  async findAll(): Promise<IReceivedData<User[]>> {
+  async findAll(filters?: FindAllUsersDto): Promise<IReceivedData<User[]>> {
     try {
+      const { page = 1, limit = 10, sortBy = 'createdAt', sortOrder = 'desc' } = filters || {};
+
       const usersCount = await this.prisma.user.count();
 
-      const users = await this.prisma.user.findMany();
+      const skip = PaginationHelper.calculateSkip(page, limit);
+
+      const users = await this.prisma.user.findMany({
+        orderBy: {
+          [sortBy]: sortOrder,
+        },
+        skip,
+        take: limit,
+      });
+
       if (users.length === 0) {
         throw new NotFoundException({
           statusCode: HttpStatus.NOT_FOUND,
@@ -25,11 +37,15 @@ export class UserService {
           data: null,
         });
       }
+
+      const meta = PaginationHelper.calculateMeta(page, limit, usersCount);
+
       return {
         statusCode: HttpStatus.OK,
         count: usersCount,
         message: 'Users retrieved successfully',
         result: users,
+        meta,
       };
     } catch (error) {
       if (error instanceof BadRequestException || error instanceof NotFoundException) {

@@ -1,7 +1,8 @@
 import { BadRequestException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
-import { Transaction } from '@prisma/client';
+import { Prisma, Transaction } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
 import { PrismaService } from 'prisma/prisma.service';
+import { PaginationHelper } from 'src/common/dto/pagination.dto';
 import { IReceivedData } from 'src/interceptors/response.interceptor';
 import { calculateInstallmentDates } from 'src/utils/transactions';
 import {
@@ -16,27 +17,30 @@ export class TransactionsService {
   constructor(private prisma: PrismaService) {}
 
   async updateCardAvailableLimit(cardId: string) {
-    const totalUsed = await this.prisma.transaction.aggregate({
-      _sum: { amount: true },
-      where: { cardId },
-    });
+    // Use transaction to prevent race conditions
+    return await this.prisma.$transaction(async (prisma: Prisma.TransactionClient) => {
+      const existingCard = await prisma.card.findUnique({
+        where: { id: cardId },
+      });
 
-    const existingCard = await this.prisma.card.findUnique({
-      where: { id: cardId },
-    });
+      if (!existingCard) {
+        throw new NotFoundException(`Card with id ${cardId} not found`);
+      }
 
-    if (!existingCard) {
-      throw new NotFoundException(`Card with id ${cardId} not found`);
-    }
+      const totalUsed = await prisma.transaction.aggregate({
+        _sum: { amount: true },
+        where: { cardId },
+      });
 
-    const totalUsedAmount = totalUsed._sum.amount ?? 0;
-    const totalUsedDecimal = new Decimal(totalUsedAmount);
+      const totalUsedAmount = totalUsed._sum.amount ?? 0;
+      const totalUsedDecimal = new Decimal(totalUsedAmount);
 
-    await this.prisma.card.update({
-      where: { id: cardId },
-      data: {
-        availableLimit: existingCard.limit.minus(totalUsedDecimal),
-      },
+      await prisma.card.update({
+        where: { id: cardId },
+        data: {
+          availableLimit: existingCard.limit.minus(totalUsedDecimal),
+        },
+      });
     });
   }
 
@@ -49,7 +53,7 @@ export class TransactionsService {
       .fill(amount.div(installments))
       .map((value, index, array) => {
         if (index === array.length - 1) {
-          const previousInstallments = array.slice(0, -1);
+          const previousInstallments = array.slice(0, -1) as Decimal[];
           if (previousInstallments.length === 0) {
             return amount;
           }
@@ -65,49 +69,76 @@ export class TransactionsService {
   private validateInstallments(amount: Decimal, installments: Decimal[]): void {
     const totalInstallments = installments.reduce((sum, value) => sum.plus(value), new Decimal(0));
 
-    if (installments.length !== totalInstallments.toNumber()) {
-      const difference = amount.minus(totalInstallments);
-      installments[installments.length - 1] = installments[installments.length - 1].plus(difference);
+    // Check if sum matches total amount (allow small floating point differences)
+    const difference = amount.minus(totalInstallments);
+    const tolerance = new Decimal('0.01'); // 1 cent tolerance
+
+    if (difference.abs().greaterThan(tolerance)) {
+      throw new BadRequestException(
+        `Invalid installment values. Sum (${totalInstallments.toString()}) does not equal total amount (${amount.toString()})`,
+      );
     }
 
-    if (
-      installments.some((value) => value.lte(0) || value.isNaN()) ||
-      !installments.reduce((sum, value) => sum.plus(value), new Decimal(0)).equals(amount)
-    ) {
+    // Validate all values are positive and valid numbers
+    if (installments.some((value) => value.lte(0) || value.isNaN())) {
       throw new BadRequestException(
-        `Invalid installment values. Ensure all values are positive, valid numbers, and their sum equals the total amount (${amount.toString()})`,
+        'Invalid installment values. All values must be positive and valid numbers.',
       );
     }
   }
 
   async findAll(userId: string, filters: FindAllTransactionsDto): Promise<IReceivedData<Transaction[]>> {
-    const { purchaseName, installmentDates, ...restOfTheFilters } = filters;
+    const {
+      purchaseName,
+      installmentDates,
+      startDate,
+      endDate,
+      page = 1,
+      limit = 10,
+      sortBy = 'createdAt',
+      sortOrder = 'desc',
+      ...restOfTheFilters
+    } = filters;
 
     try {
-      const transactionCount = await this.prisma.transaction.count({
-        where: {
-          userId,
-          AND: {
-            ...restOfTheFilters,
-            purchaseName: purchaseName ? { contains: purchaseName, mode: 'insensitive' } : undefined,
-            installmentDates: installmentDates ? { hasSome: installmentDates } : undefined,
-            card: restOfTheFilters.card ? { id: restOfTheFilters.card } : undefined,
-            dependent: restOfTheFilters.dependent ? { id: restOfTheFilters.dependent } : undefined,
-          },
+      // Build date range filter
+      const dateFilter: {
+        purchaseDate?: {
+          gte?: Date;
+          lte?: Date;
+        };
+      } = {};
+      if (startDate && endDate) {
+        dateFilter.purchaseDate = {
+          gte: new Date(startDate),
+          lte: new Date(endDate),
+        };
+      } else if (startDate) {
+        dateFilter.purchaseDate = { gte: new Date(startDate) };
+      } else if (endDate) {
+        dateFilter.purchaseDate = { lte: new Date(endDate) };
+      }
+
+      const whereClause = {
+        userId,
+        AND: {
+          ...restOfTheFilters,
+          ...dateFilter,
+          purchaseName: purchaseName ? { contains: purchaseName, mode: 'insensitive' as const } : undefined,
+          installmentDates: installmentDates ? { hasSome: installmentDates } : undefined,
+          card: restOfTheFilters.card ? { id: restOfTheFilters.card } : undefined,
+          dependent: restOfTheFilters.dependent ? { id: restOfTheFilters.dependent } : undefined,
         },
+      };
+
+      const transactionCount = await this.prisma.transaction.count({
+        where: whereClause,
       });
 
+      const skip = PaginationHelper.calculateSkip(page, limit);
+
       const transactions = await this.prisma.transaction.findMany({
-        where: {
-          userId,
-          AND: {
-            ...restOfTheFilters,
-            purchaseName: purchaseName ? { contains: purchaseName, mode: 'insensitive' } : undefined,
-            card: restOfTheFilters.card ? { id: restOfTheFilters.card } : undefined,
-            installmentDates: installmentDates ? { hasSome: installmentDates } : undefined,
-            dependent: restOfTheFilters.dependent ? { id: restOfTheFilters.dependent } : undefined,
-          },
-        },
+        where: whereClause,
         include: {
           card: {
             select: {
@@ -120,6 +151,11 @@ export class TransactionsService {
             },
           },
         },
+        orderBy: {
+          [sortBy]: sortOrder,
+        },
+        skip,
+        take: limit,
       });
 
       if (transactions.length === 0) {
@@ -131,11 +167,14 @@ export class TransactionsService {
         });
       }
 
+      const meta = PaginationHelper.calculateMeta(page, limit, transactionCount);
+
       return {
         statusCode: HttpStatus.OK,
         count: transactionCount,
         message: 'Transactions retrieved successfully',
         result: transactions,
+        meta,
       };
     } catch (error) {
       if (error instanceof BadRequestException || error instanceof NotFoundException) {
@@ -143,7 +182,7 @@ export class TransactionsService {
       }
       throw new BadRequestException({
         statusCode: HttpStatus.BAD_REQUEST,
-        message: 'Error creating transaction',
+        message: 'Error retrieving transactions',
       });
     }
   }
@@ -237,7 +276,7 @@ export class TransactionsService {
             id: filters.id ? filters.id : undefined,
             purchaseName: filters.purchaseName ? filters.purchaseName : undefined,
             description: filters.description
-              ? { contains: filters.description, mode: 'insensitive' }
+              ? { contains: filters.description, mode: 'insensitive' as const }
               : undefined,
           },
         },
@@ -297,13 +336,20 @@ export class TransactionsService {
 
       const newAmountDecimal = new Decimal(updateTransactionDto.amount ?? existingTransaction.amount);
       const amountChanged = !newAmountDecimal.equals(existingTransaction.amount);
+      const installmentsChanged =
+        updateTransactionDto.installments !== undefined &&
+        updateTransactionDto.installments !== existingTransaction.installments;
+      const dateChanged =
+        updateTransactionDto.purchaseDate !== undefined &&
+        new Date(updateTransactionDto.purchaseDate).getTime() !== existingTransaction.purchaseDate.getTime();
 
       let finalInstallmentValues: Decimal[] = existingTransaction.installmentsValue.map(
         (value) => new Decimal(value),
       );
       let installmentDates = existingTransaction.installmentDates;
 
-      if (amountChanged) {
+      // Recalculate installment values if amount or number of installments changed
+      if (amountChanged || installmentsChanged) {
         finalInstallmentValues = this.calculateInstallments(
           newAmountDecimal,
           updateTransactionDto.installments ?? existingTransaction.installments,
@@ -313,10 +359,13 @@ export class TransactionsService {
         );
 
         this.validateInstallments(newAmountDecimal, finalInstallmentValues);
+      }
 
+      // Recalculate installment dates if date, installments, or amount changed
+      if (amountChanged || installmentsChanged || dateChanged) {
         const transactionDate = updateTransactionDto.purchaseDate
           ? new Date(updateTransactionDto.purchaseDate)
-          : new Date();
+          : existingTransaction.purchaseDate;
         const card = await this.prisma.card.findUnique({
           where: { id: existingTransaction.cardId },
         });
@@ -375,7 +424,12 @@ export class TransactionsService {
       });
     }
 
+    const cardId = existingTransaction.cardId;
+
     await this.prisma.transaction.delete({ where: { id: transactionId } });
+
+    // Update card available limit after deletion
+    await this.updateCardAvailableLimit(cardId);
 
     return {
       result: { transactionId },

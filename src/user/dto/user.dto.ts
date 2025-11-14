@@ -1,6 +1,7 @@
 import { HttpStatus } from '@nestjs/common';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsEmail, IsEnum, IsOptional, IsString } from 'class-validator';
+import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { ResponseWithDataDto } from 'src/constants';
 
 export enum RoleDto {
@@ -44,6 +45,8 @@ export class UpdateUserRoleDto {
   @ApiProperty({ enum: RoleDto, enumName: 'Role' })
   newRole: RoleDto;
 }
+
+export class FindAllUsersDto extends PaginationDto {}
 
 export class UserDto {
   @ApiProperty({ example: '123e4567-e89b-12d3-a456-426614174000' })

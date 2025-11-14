@@ -1,0 +1,34 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(tree:*)",
+      "Bash(claude mcp add:*)",
+      "Bash(npm run build:*)",
+      "Bash(npx prisma generate)",
+      "Bash(npx prisma db push:*)",
+      "Bash(npm run start:dev:*)",
+      "Bash(curl:*)",
+      "Bash(http:*)",
+      "Bash(npm run lint)",
+      "Bash(cat:*)",
+      "Bash(npx prisma format:*)",
+      "Bash(find:*)",
+      "Bash(npm test:*)",
+      "Bash(npm run test:cov:*)",
+      "Bash(timeout 15 bash -c 'until curl -s http://localhost:3001/api 2>/dev/null | grep -q \"\"Swagger\"\"; do sleep 1; done; echo \"\"Server is ready!\"\"')",
+      "Bash(__NEW_LINE__ echo \"Creating transaction 1...\")",
+      "Bash(__NEW_LINE__ echo \"Creating additional transactions with unique names...\")",
+      "Bash(__NEW_LINE__ echo \"Transaction 21...\")",
+      "Bash(__NEW_LINE__ echo \"Transaction 22...\")",
+      "Bash(__NEW_LINE__ echo \"Transaction 23...\")",
+      "Bash(__NEW_LINE__ echo \"Transaction 24...\")",
+      "Bash(__NEW_LINE__ echo \"Transaction 25...\")",
+      "Bash(__NEW_LINE__ echo \"Transaction 26...\")",
+      "Bash(__NEW_LINE__ echo \"\")",
+      "Bash(python -m json.tool:*)",
+      "Bash(echo:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

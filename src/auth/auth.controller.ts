@@ -42,7 +42,6 @@ export class AuthController {
   @Post('signup')
   @ApiOperation({ summary: 'Create a new user', operationId: 'authSignUpUser' })
   @ApiCreatedResponse({ type: ResultSignupDto })
-  @ApiExcludeEndpoint()
   async authSignUpUser(@Body() body: SignupDto) {
     return await this.authService.signUpUser(body);
   }

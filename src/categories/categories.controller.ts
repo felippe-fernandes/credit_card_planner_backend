@@ -11,6 +11,7 @@ import {
 } from '@nestjs/swagger';
 import { AuthGuard } from 'src/auth/auth.guard';
 import { RequestWithUser } from 'src/auth/interfaces/auth.interface';
+import { SortOrder } from 'src/common/dto/pagination.dto';
 import { BaseResponseDto, ResponseNotFoundDto } from 'src/constants';
 import { ApiErrorDefaultResponses } from 'src/decorators/api-error-default-response.decorators';
 import { CategoriesService } from './categories.service';
@@ -42,9 +43,32 @@ export class CategoriesController {
   @ApiOkResponse({ type: ResultFindAllCategoryDto })
   @ApiNotFoundResponse({ type: ResponseNotFoundDto })
   @ApiQuery({ name: 'name', required: false, description: 'Filter by category name' })
-  async getAllCategories(@Req() req: RequestWithUser, @Query('name') name?: string) {
+  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Page number (default: 1)' })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Items per page (default: 10, max: 100)',
+  })
+  @ApiQuery({ name: 'sortBy', required: false, description: 'Field to sort by (default: createdAt)' })
+  @ApiQuery({
+    name: 'sortOrder',
+    required: false,
+    enum: ['asc', 'desc'],
+    description: 'Sort order (default: desc)',
+  })
+  async getAllCategories(
+    @Req() req: RequestWithUser,
+    @Query('name') name?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('sortBy') sortBy?: string,
+    @Query('sortOrder') sortOrder?: 'asc' | 'desc',
+  ) {
     const userId = req.user.id;
-    const filters = { name };
+    const pageNumber = page ? parseInt(page, 10) : 1;
+    const limitNumber = limit ? parseInt(limit, 10) : 10;
+    const filters = { name, page: pageNumber, limit: limitNumber, sortBy, sortOrder: sortOrder as SortOrder };
     return this.categoryService.findAll(userId, filters);
   }
 
