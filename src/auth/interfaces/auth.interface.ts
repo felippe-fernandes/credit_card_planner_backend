@@ -4,4 +4,8 @@ import { Request } from 'express';
 
 export interface RequestWithUser extends Request {
   user: SupabaseUser & { userRole: PrismaUser['role'] };
+  cookies: {
+    sb_auth_token?: string;
+    [key: string]: string | undefined;
+  };
 }
