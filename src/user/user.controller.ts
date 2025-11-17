@@ -13,10 +13,10 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
-import { SortOrder } from 'src/common/dto/pagination.dto';
 import {
   ApiBearerAuth,
   ApiBody,
+  ApiExcludeEndpoint,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
@@ -30,6 +30,7 @@ import { AuthService } from 'src/auth/auth.service';
 import { RequestWithUser } from 'src/auth/interfaces/auth.interface';
 import { Roles } from 'src/auth/roles/roles.decorator';
 import { RolesGuard } from 'src/auth/roles/roles.guard';
+import { SortOrder } from 'src/common/dto/pagination.dto';
 import { ResponseNotFoundDto } from 'src/constants';
 import { ApiErrorDefaultResponses } from 'src/decorators/api-error-default-response.decorators';
 import {
@@ -93,6 +94,7 @@ export class UserController {
   @ApiOperation({ summary: "Change a user's role", operationId: 'changeUserRole' })
   @ApiBody({ type: UpdateUserRoleDto })
   @ApiOkResponse({ type: ResultUpdateUserRoleDto })
+  @ApiExcludeEndpoint()
   changeUserRole(@Body() updateUserDto: UpdateUserRoleDto) {
     return this.userService.updateRole(updateUserDto);
   }
