@@ -39,8 +39,8 @@ export class AuthService {
 
       res.cookie('sb_auth_token', access_token, {
         httpOnly: true,
+        sameSite: 'none',
         secure: true,
-        sameSite: 'strict',
         path: '/',
         maxAge: 60 * 60 * 1000,
       });
@@ -72,8 +72,8 @@ export class AuthService {
     res.clearCookie('sb_auth_token', {
       path: '/',
       httpOnly: true,
+      sameSite: 'none',
       secure: true,
-      sameSite: 'strict',
     });
 
     return {
@@ -217,8 +217,8 @@ export class AuthService {
       res.clearCookie('sb_auth_token', {
         path: '/',
         httpOnly: true,
+        sameSite: 'none',
         secure: true,
-        sameSite: 'strict',
       });
 
       return { message: 'User successfully deleted.' };
