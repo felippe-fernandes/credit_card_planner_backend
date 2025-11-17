@@ -65,4 +65,4 @@ The full API documentation, including all available endpoints and data schemas, 
 
 **Felippe Fernandes**
 - GitHub: [@felippe-fernandes](https://github.com/felippe-fernandes)
-- **Frontend Repository:** [credit_card_planner_frontend](https://github.com/felippe-fernandes/credit_card_planner_frontend)
+- LinkedIn: [Felippe Fernandes](https://www.linkedin.com/in/fernandes-felippe/)
