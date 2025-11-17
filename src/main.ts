@@ -31,8 +31,12 @@ async function bootstrap() {
 
   app.useGlobalFilters(new HttpExceptionFilter());
 
+  const allowedOrigins = process.env.FRONTEND_URL
+    ? process.env.FRONTEND_URL.split(',').map((origin) => origin.trim())
+    : ['http://localhost:3000'];
+
   app.enableCors({
-    origin: process.env.FRONTEND_URL ?? 'http://localhost:3000',
+    origin: allowedOrigins,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
   });
@@ -60,10 +64,11 @@ async function bootstrap() {
     customSiteTitle: 'Credit Card Planner - Swagger',
   });
 
-  await app.listen(process.env.PORT ?? 3001);
+  const port = process.env.PORT ?? 3001;
+  await app.listen(port);
 
-  console.log(
-    `🚀 Server running at http://localhost:${process.env.PORT ?? 3001} in ${process.env.NODE_ENV} mode`,
-  );
+  const serverUrl = process.env.NODE_ENV === 'production' ? `Port ${port}` : `http://localhost:${port}`;
+
+  console.log(`🚀 Server running at ${serverUrl} in ${process.env.NODE_ENV ?? 'development'} mode`);
 }
 bootstrap().catch((err) => console.error(err));
